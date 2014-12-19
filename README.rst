@@ -24,6 +24,11 @@ or::
     # build for in-place development
     python setup.py develop
 
+License for Numerrin
+--------------------
+
+If you wish to test the Numerrin-related stuff, you need a license file. For this, please send the MAC address of the ethernet adapter of your computer to Janne at Numerola. After getting the file, make an environment variable PYNUMERRIN_LICENSE, which points to the file, for example "/home/user/simphony/license.dat" or "C:\users\meself\license.dat".
+
 Testing
 -------
 
