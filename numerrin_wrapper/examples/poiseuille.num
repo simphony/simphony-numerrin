@@ -9,8 +9,8 @@ outflow->domains[2]
 V=Space(omega,"Lagrange",2)
 W=Space(omega,"Lagrange",1)
 
-mu=1.0
-rho=1.0
+mu=Viscosity
+rho=Density
 
 u[0:1] in V
 p in W

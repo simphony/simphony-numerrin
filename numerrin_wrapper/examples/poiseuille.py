@@ -3,6 +3,8 @@ from numerrin_wrapper.numerrin_wrapper import NumerrinWrapper
 
 numerrin_wrapper = NumerrinWrapper()
 numerrin_wrapper.CM[CUBA.NAME]="numerrin_wrapper/examples/poiseuille.num"
+numerrin_wrapper.SP[CUBA.DENSITY]=1.0
+numerrin_wrapper.SP[CUBA.DYNAMIC_VISCOSITY]=1.0
 
 numerrin_wrapper.run()
 (simphonyMesh,numerrinMeshMap)=numerrin_wrapper.get_mesh("mesh")
