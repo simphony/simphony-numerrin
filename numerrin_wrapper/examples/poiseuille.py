@@ -1,5 +1,5 @@
 from simphony.core.cuba import CUBA
-from numerrin_wrapper import NumerrinWrapper
+from numerrin_wrapper.numerrin_wrapper import NumerrinWrapper
 
 numerrin_wrapper = NumerrinWrapper()
 numerrin_wrapper.CM[CUBA.NAME]="numerrin_wrapper/examples/poiseuille.num"
