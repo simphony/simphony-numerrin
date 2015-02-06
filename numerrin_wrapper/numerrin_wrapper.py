@@ -44,7 +44,7 @@ class NumerrinPool(object):
             tab[7] = tmp
 
     def exportMesh(self, numerrinName):
-        simphonyMesh = Mesh()
+        simphonyMesh = Mesh(numerrinName)
         uuids = []
         mmap = NumerrinMeshMap()
         meshsize = numerrin.meshsize(self.ph,numerrinName)
