@@ -1,14 +1,44 @@
+"""Example to solve 2D poiseuille flow
+
+"""
+
 from simphony.core.cuba import CUBA
-from numerrin_wrapper.numerrin_wrapper import NumerrinWrapper
+from simphony.engine import numerrin
+from simphony.io.h5_cuds import H5CUDS
+import os
 
-numerrin_wrapper = NumerrinWrapper()
-numerrin_wrapper.CM[CUBA.NAME]="numerrin_wrapper/examples/poiseuille.num"
-numerrin_wrapper.SP[CUBA.DENSITY]=1.0
-numerrin_wrapper.SP[CUBA.DYNAMIC_VISCOSITY]=1.0
+wrapper = numerrin.NumerrinWrapper()
+CUBAExt = numerrin.CUBAExt
 
-numerrin_wrapper.run()
-(simphonyMesh,numerrinMeshMap)=numerrin_wrapper.get_mesh("mesh")
-numerrin_wrapper.get_node_data(simphonyMesh,numerrinMeshMap,"Un",CUBA.VELOCITY)
-numerrin_wrapper.get_node_data(simphonyMesh,numerrinMeshMap,"p",CUBA.PRESSURE)
-numerrin_wrapper.get_edge_data(simphonyMesh,numerrinMeshMap,"Ue",CUBA.VELOCITY)
-numerrin_wrapper.get_face_data(simphonyMesh,numerrinMeshMap,"Uf",CUBA.VELOCITY)
+name = 'poiseuille'
+
+wrapper.CM[CUBA.NAME] = name
+
+wrapper.CM_extensions[CUBAExt.GE] = (CUBAExt.INCOMPRESSIBLE,
+                                     CUBAExt.LAMINAR_MODEL)
+wrapper.SP[CUBA.TIME_STEP] = 1
+wrapper.SP[CUBA.NUMBER_OF_TIME_STEPS] = 1000
+wrapper.SP[CUBA.DENSITY] = 1.0
+wrapper.SP[CUBA.DYNAMIC_VISCOSITY] = 1.0
+
+# this is just an example. It is not enough for general setting of BC's
+wrapper.BC[CUBA.VELOCITY] = {'boundary0': (0.1, 0, 0),
+                             'boundary1': 'zeroGradient',
+                             'boundary2': (0, 0, 0),
+                             'boundary3': 'empty'}
+wrapper.BC[CUBA.PRESSURE] = {'boundary0': 'zeroGradient',
+                             'boundary1': 0,
+                             'boundary2': 'zeroGradient',
+                             'boundary3': 'empty'}
+
+mesh_file = H5CUDS.open(os.path.join(name, 'poiseuille.cuds'))
+mesh_from_file = mesh_file.get_mesh(name)
+
+print "Mesh name ", mesh_from_file.name
+
+mesh_inside_wrapper = wrapper.add_mesh(mesh_from_file)
+
+
+# run returns the latest step
+latestStep = wrapper.run()
+print "Steps taken ", latestStep

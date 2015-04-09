@@ -30,4 +30,9 @@ setup(
     author='SimPhoNy FP7 European Project',
     description='Implementation of the SimPhoNy Numerrin -wrapper',
     long_description=README_TEXT,
-    packages=find_packages())
+    packages=find_packages(),
+    install_requires=['simphony'],
+    entry_points={
+        'simphony.engine': ['numerrin = numerrin_wrapper']}
+
+)
