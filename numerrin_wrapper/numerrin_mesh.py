@@ -413,12 +413,18 @@ class NumerrinMesh(ABCMesh):
                 yield cell
 
     def has_edges(self):
-        """Return false while edges are not supported yet
+       """Check if the mesh has edges
+
+        Returns
+        -------
+        bool
+            True of there are edges inside the mesh,
+            False otherwise
 
         """
-
-        return False
-
+        numberEdges = numerrin.meshsize(self.pool.ph,self.name)[1]
+        return numberEdges > 0
+ 
     def has_faces(self):
         """Check if the mesh has faces
 
