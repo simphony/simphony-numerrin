@@ -1,0 +1,26 @@
+language: python
+python:
+  - "2.7"
+virtualenv:
+  system_site_packages: false
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install libhdf5-serial-dev
+  - ./install_external.sh
+  # (1) Install cython and numexpr externally because the requirements does
+  #     not work with them
+  # (2) Pytables breaks with latest Cython
+  #     see https://github.com/PyTables/PyTables/issues/388
+  - pip install numexpr cython==0.20
+  - pip install -r requirements.txt
+  - pip install -r dev_requirements.txt
+  - pip install -r doc_requirements.txt
+  - pip install coveralls
+#  - ./install_num_interface.sh
+install:
+  - python setup.py develop
+script:
+  - coverage run -m unittest discover
+  - flake8 .
+after_success:
+  - coveralls
