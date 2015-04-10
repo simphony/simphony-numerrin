@@ -6,7 +6,6 @@ numerrin_mesh module functionalities
 """
 
 import unittest
-import os
 
 from simphony.cuds.mesh import Mesh, Face, Point, Cell, Edge
 from simphony.core.cuba import CUBA
@@ -18,11 +17,13 @@ from numerrin_wrapper.numerrin_templates import liccode
 
 import numerrin
 
+
 class NumerrinMeshTestCase(unittest.TestCase):
     """Test case for NumerrinMesh class"""
+
     def setUp(self):
         self.mesh = Mesh(name="mesh1")
-        numerrin.initlocal("","PYNUMERRIN_LICENSE",liccode)
+        numerrin.initlocal("", "PYNUMERRIN_LICENSE", liccode)
         self.pool = NumerrinPool()
         self.points = [
             Point(
@@ -98,8 +99,10 @@ class NumerrinMeshTestCase(unittest.TestCase):
         point = self.points[4]
         point_f = num_mesh.get_point(point.uid)
         self.assertEqual(point.coordinates, point_f.coordinates)
-        self.assertEqual(point.data[CUBA.PRESSURE], point_f.data[CUBA.PRESSURE])
-        self.assertEqual(point.data[CUBA.VELOCITY], point_f.data[CUBA.VELOCITY])
+        self.assertEqual(point.data[CUBA.PRESSURE],
+                         point_f.data[CUBA.PRESSURE])
+        self.assertEqual(point.data[CUBA.VELOCITY],
+                         point_f.data[CUBA.VELOCITY])
 
     def test_get_edge(self):
         """Test get_edge method
@@ -197,16 +200,6 @@ class NumerrinMeshTestCase(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             num_mesh.update_face(self.faces[4])
 
-
-    def test_iter_points(self):
-        """Test iter_points method
-
-        """
-
-        num_mesh = NumerrinMesh('test_mesh', self.mesh, self.pool)
-        puids_f = [point.uid for point in num_mesh.iter_points()]
-        self.assertEqual(set(self.puids), set(puids_f))
-
     def test_iter_edges(self):
         """Test iter_edges method
 
@@ -236,6 +229,8 @@ class NumerrinMeshTestCase(unittest.TestCase):
             point = self.mesh.get_point(point_f.uid)
             self.assertEqual(point.data[CUBA.VELOCITY],
                              point_f.data[CUBA.VELOCITY])
+            self.assertEqual(point.data[CUBA.PRESSURE],
+                             point_f.data[CUBA.PRESSURE])
 
     def test_has_faces(self):
         """Test has_faces method
@@ -243,7 +238,7 @@ class NumerrinMeshTestCase(unittest.TestCase):
         """
 
         num_mesh = NumerrinMesh('test_mesh', self.mesh, self.pool)
-        self.assertEqual(num_mesh.has_faces(), True)
+        self.assertTrue(num_mesh.has_faces())
 
     def test_has_cells(self):
         """Test has_cells method
@@ -251,7 +246,7 @@ class NumerrinMeshTestCase(unittest.TestCase):
         """
 
         num_mesh = NumerrinMesh('test_mesh', self.mesh, self.pool)
-        self.assertEqual(num_mesh.has_cells(), True)
+        self.assertTrue(num_mesh.has_cells())
 
 
 if __name__ == '__main__':

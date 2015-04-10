@@ -5,17 +5,17 @@ and modify a mesh and related data
 
 """
 from simphony.cuds.abstractmesh import ABCMesh
-from simphony.cuds.mesh import Mesh, Face, Point, Cell
-from simphony.core.data_container import DataContainer
+from simphony.cuds.mesh import Face, Point, Cell
 from simphony.core.cuba import CUBA
 
 from .numerrin_templates import numname
 
 import numerrin
 
+
 class NumerrinMesh(ABCMesh):
     """ Proxy class to communicate with Numerrin pool mesh data
-    
+
     Parameters
     ----------
     name : str
@@ -31,7 +31,7 @@ class NumerrinMesh(ABCMesh):
     ----------
     name : str
         name of mesh
-    
+
     mesh : ABCMesh
        mesh to store
 
@@ -51,12 +51,12 @@ class NumerrinMesh(ABCMesh):
 
 
     """
-    
+
     def __init__(self, name, mesh, pool):
 
         self.name = name
         self.pool = pool
-        maps = self.pool.import_mesh(name, mesh)        
+        maps = self.pool.import_mesh(name, mesh)
         self._uuidToNumLabel = maps[0]
         self._numPointLabelToUuid = maps[1]
         self._numEdgeLabelToUuid = maps[2]
@@ -95,17 +95,17 @@ class NumerrinMesh(ABCMesh):
                                       self._uuidToNumLabel[uuid])
             point = Point(coords, uuid)
             dataNames = ["Velocity", "Pressure"]
-            data = DataContainer()
             for dataName in dataNames:
                 try:
                     mDataName = self.name + dataName
-                    if numerrin.gettype(self.pool.ph,mDataName) == "Function":
-                        dataV = numerrin.getrealfunction(self.pool.ph, mDataName)
+                    if numerrin.gettype(self.pool.ph, mDataName) == "Function":
+                        dataV = numerrin.getrealfunction(self.pool.ph,
+                                                         mDataName)
                     else:
                         dataV = numerrin.getvariable(self.pool.ph, mDataName)
-                    dkey = [key for key, value in numname.iteritems() if value == dataName][0]
+                    dkey = [key for key, value in numname.iteritems() if
+                            value == dataName][0]
                     point.data[dkey] = dataV[self._uuidToNumLabel[uuid]]
-                    
                 except:
                     pass
 
@@ -113,7 +113,6 @@ class NumerrinMesh(ABCMesh):
         except KeyError:
             error_str = "Trying to get an non-existing point with uuid: {}"
             raise ValueError(error_str.format(uuid))
-
 
     def get_edge(self, uuid):
         """Returns an edge with a given uuid.
@@ -164,16 +163,15 @@ class NumerrinMesh(ABCMesh):
             If the face identified by uuid was not found
 
         """
-        
+
         try:
             pointLabels = self.pool.get_face_points(self.name,
                                                     self._uuidToNumLabel[uuid])
-            
             puids = [self._numPointLabelToUuid[lbl] for lbl in pointLabels]
-            
             face = Face(puids, uuid)
             try:
-                blabel = self.pool.get_face_boundary_label(self.name, self._uuidToNumLabel[uuid])
+                blabel = self.pool.get_face_boundary_label(
+                    self.name, self._uuidToNumLabel[uuid])
                 face.data[CUBA.LABEL] = blabel
             except:
                 pass
@@ -181,7 +179,7 @@ class NumerrinMesh(ABCMesh):
         except KeyError:
             error_str = "Trying to get an non-existing edge with uuid: {}"
             raise ValueError(error_str.format(uuid))
-            
+
     def get_cell(self, uuid):
         """Returns a cell with a given uuid.
 
@@ -208,7 +206,7 @@ class NumerrinMesh(ABCMesh):
 
         try:
             pointLabels = numerrin.getelement(self.pool.ph, self.name,
-                                              3,self._uuidToNumLabel[uuid],
+                                              3, self._uuidToNumLabel[uuid],
                                               0)
             puids = [self._numPointLabelToUuid[lbl] for lbl in pointLabels]
             cell = Cell(puids, uuid)
@@ -257,11 +255,12 @@ class NumerrinMesh(ABCMesh):
             error_str = "Trying to update a non-existing point with uuid: "\
                 + str(point.uid)
             raise KeyError(error_str)
-            
+
         dataNames = ["Velocity", "Pressure"]
         for dataName in dataNames:
             vname = self.name + dataName
-            vkey = [key for key, value in numname.iteritems() if value == dataName][0]
+            vkey = [key for key, value in numname.iteritems() if
+                    value == dataName][0]
             try:
                 if vkey in point.data:
                     vdata = list(self.pool.get_variable(vname))
@@ -272,7 +271,7 @@ class NumerrinMesh(ABCMesh):
                 if vkey in point.data:
                     var = point.data[vkey]
                     if type(var) is tuple:
-                        vdata = list([(0,0,0) for _ in self.iter_points()])
+                        vdata = list([(0, 0, 0) for _ in self.iter_points()])
                     else:
                         vdata = list([0 for _ in self.iter_points()])
 
@@ -313,7 +312,7 @@ class NumerrinMesh(ABCMesh):
         """
 
         if point_uuids is None:
-            pointCount = numerrin.meshsize(self.pool.ph,self.name)[0]
+            pointCount = numerrin.meshsize(self.pool.ph, self.name)[0]
             for label in range(pointCount):
                 yield self.get_point(self._numPointLabelToUuid[label])
         else:
@@ -343,14 +342,13 @@ class NumerrinMesh(ABCMesh):
         """
 
         if edge_uuids is None:
-            edgeCount = numerrin.meshsize(self.pool.ph,self.name)[1]
+            edgeCount = numerrin.meshsize(self.pool.ph, self.name)[1]
             for label in range(edgeCount):
                 yield self.get_edge(self._numEdgeLabelToUuid[label])
         else:
             for uid in edge_uuids:
                 edge = self.get_edge(uid)
                 yield edge
- 
 
     def iter_faces(self, face_uuids=None):
         """Returns an iterator over the selected faces.
@@ -413,7 +411,7 @@ class NumerrinMesh(ABCMesh):
                 yield cell
 
     def has_edges(self):
-       """Check if the mesh has edges
+        """Check if the mesh has edges
 
         Returns
         -------
@@ -422,9 +420,10 @@ class NumerrinMesh(ABCMesh):
             False otherwise
 
         """
-        numberEdges = numerrin.meshsize(self.pool.ph,self.name)[1]
+
+        numberEdges = numerrin.meshsize(self.pool.ph, self.name)[1]
         return numberEdges > 0
- 
+
     def has_faces(self):
         """Check if the mesh has faces
 
@@ -435,7 +434,7 @@ class NumerrinMesh(ABCMesh):
             False otherwise
 
         """
-        numberFaces = numerrin.meshsize(self.pool.ph,self.name)[2]
+        numberFaces = numerrin.meshsize(self.pool.ph, self.name)[2]
         return numberFaces > 0
 
     def has_cells(self):
@@ -448,5 +447,5 @@ class NumerrinMesh(ABCMesh):
             False otherwise
 
         """
-        numberCells = numerrin.meshsize(self.pool.ph,self.name)[3]
+        numberCells = numerrin.meshsize(self.pool.ph, self.name)[3]
         return numberCells > 0

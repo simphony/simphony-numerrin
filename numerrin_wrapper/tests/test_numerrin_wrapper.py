@@ -7,8 +7,6 @@ numerrin_wrapper module functionalities
 
 import unittest
 import os
-import re
-import shutil
 
 from simphony.cuds.mesh import Mesh, Face, Point, Cell
 from simphony.core.cuba import CUBA
@@ -70,7 +68,6 @@ class NumerrinWrapperTestCase(unittest.TestCase):
         self.puids = puids
 
         [self.mesh.add_cell(cell) for cell in self.cells]
-
 
     def test_add_mesh(self):
         """Test add_mesh method
@@ -252,7 +249,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
 
         wrapper.run()
 
-        point_uid =  mesh_inside_wrapper._numPointLabelToUuid[30]
+        point_uid = mesh_inside_wrapper._numPointLabelToUuid[30]
         point = mesh_inside_wrapper.get_point(point_uid)
         old_vel = point.data[CUBA.VELOCITY]
         old_pres = point.data[CUBA.PRESSURE]

@@ -1,12 +1,11 @@
 """ numerrin_wrapper module
 
 Wrapper module for Numerrin using native Numerrin-Python interface
-  
+
 """
+
 from simphony.cuds.abc_modeling_engine import ABCModelingEngine
-from simphony.core.cuba import CUBA
 from simphony.core.data_container import DataContainer
-from simphony.cuds.mesh import Mesh, Point, Face, Edge, Cell
 
 from .numerrin_pool import NumerrinPool
 from .numerrin_code import NumerrinCode
@@ -17,10 +16,12 @@ import numerrin
 
 
 class NumerrinWrapper(ABCModelingEngine):
+    """ Wrapper to Numerrin
 
+    """
 
     def __init__(self):
-        numerrin.initlocal("","PYNUMERRIN_LICENSE",liccode)
+        numerrin.initlocal("", "PYNUMERRIN_LICENSE", liccode)
         self.pool = NumerrinPool()
         self.code = NumerrinCode(self.pool)
         self._meshes = {}
@@ -30,19 +31,26 @@ class NumerrinWrapper(ABCModelingEngine):
         self.CM_extensions = {}
         self._first = True
 
-    def parse_program_file(self, fileName):
-        self.code.parse_file(fileName)
-
-    def parse_program_string(self, prstr):
-        self.code.parse_string(prstr)
-
     def run(self):
+        """Run Numerrin based on CM, BC and SP data
+
+        Returns
+        -------
+        lastIterationStep : int
+            Last iteration step step taken.
+
+        Raises
+        ------
+        Exception when solver not supported.
+
+        """
+
         # put SP parameters to pool
         for key in self.SP:
-           self.pool.put_variable(numname[key],self.SP[key])
+            self.pool.put_variable(numname[key], self.SP[key])
         # parse solver code
         if self._first:
-            self.parse_program_string(
+            self.code.parse_string(
                 self.code.generate_code(self.CM,
                                         self.SP,
                                         self.BC,
@@ -158,7 +166,8 @@ class NumerrinWrapper(ABCModelingEngine):
         if name not in self._meshes:
             raise ValueError('Mesh \'{}\` does not exists'.format(name))
         else:
-#            simphonyfoaminterface.deleteMesh(name)
+            # here operation to pool of deleting mesh and
+            # corresponding variables should be added
             del self._meshes[name]
 
     def add_particles(self, particle_container):

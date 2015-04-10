@@ -6,7 +6,11 @@ from .numerrin_templates import numname
 
 import numerrin
 
+
 class NumerrinCode(object):
+    """ Class for handling Numerring code
+
+    """
 
     def __init__(self, pool):
         self.ph = pool.ph
@@ -21,14 +25,33 @@ class NumerrinCode(object):
     def parse_string(self, codeString):
         numerrin.parsestring(self.ph, self.ch, codeString)
 
-    def execute(self,nproc):
+    def execute(self, nproc):
         numerrin.execute(self.ph, self.ch, nproc)
 
     def clear(self):
         numerrin.clearcode(self.ch)
 
     def generate_code(self, CM, SP, BC, CMExt):
-        
+        """Modify OpenFoam case files according to user settings
+
+        Parameters
+        ----------
+        CM : DataContainer
+            Computational Method
+        SP : DataContainer
+            System Parameters
+        BC : DataContainer
+            Boundary Conditions
+        CMExt : dictionary
+            extension to CM
+
+        Return
+        ------
+        code : str
+            Numerrin code as a string
+
+        """
+
         name = CM[CUBA.NAME]
         code = ""
 
@@ -53,11 +76,11 @@ class NumerrinCode(object):
             if pressureBCs[boundary] not in nonFixedBoundaryTypes:
                 bi = int(boundary.replace('boundary', ''))
                 domaincode += boundary + "->" + name + "domains" +\
-                              str(bi) + "\n"
+                    str(bi) + "\n"
                 bccode += "Constraint(" + boundary + ",W)\n"
                 bccode += " r[3] <- p(.) - " +\
-                          str(pressureBCs[boundary]) +\
-                          "\n"
+                    str(pressureBCs[boundary]) +\
+                    "\n"
                 bccode += "EndConstraint\n"
 
         velocityBCs = BC[CUBA.VELOCITY]
@@ -66,20 +89,19 @@ class NumerrinCode(object):
                 bi = int(boundary.replace('boundary', ''))
                 velo = velocityBCs[boundary]
                 domaincode += boundary + "->" + name + "domains" +\
-                              str(bi) + "\n"
+                    str(bi) + "\n"
                 bccode += "Constraint(" + boundary + ",V)\n"
                 bccode += " up=u(.)\n"
                 bccode += " r[0] <- up[0] - " + str(velo[0]) + "\n"
                 bccode += " r[1] <- up[1] - " + str(velo[1]) + "\n"
                 bccode += " r[2] <- up[2] - " + str(velo[2]) + "\n"
                 bccode += "EndConstraint\n"
-                
+
         GE = CMExt[CUBAExt.GE]
         if CUBAExt.LAMINAR_MODEL in GE:
             solver = "stabilizedLaminarNS3D"
             if solver == 'stabilizedLaminarNS3D':
                 funccode += functions[solver]
- 
         else:
             error_str = "GE does not define supported solver: GE = {}"
             raise NotImplementedError(error_str.format(GE))
@@ -92,9 +114,9 @@ class NumerrinCode(object):
         # associations
         code += assoccode
         # main loop
-        code +="For iteration=1:NumberOfTimeSteps\n"
-        # solver frame           
-        code += solverFrames[solver].format(integrationDegree = 3)
+        code += "For iteration=1:NumberOfTimeSteps\n"
+        # solver frame
+        code += solverFrames[solver].format(integrationDegree=3)
         # boundary conditions
         code += bccode
         # linear solver
@@ -107,5 +129,4 @@ class NumerrinCode(object):
         code += "EndFor\n"
         code += name + numname[CUBA.VELOCITY] + "=u \n"
         code += name + numname[CUBA.PRESSURE] + "=p\n"
-#        print code
         return code
