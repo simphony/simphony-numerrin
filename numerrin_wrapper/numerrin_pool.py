@@ -233,7 +233,7 @@ class NumerrinPool(object):
         rank : int
            variable rank
         """
-        return  numerrin.getrank(self.ph, name)
+        return numerrin.getrank(self.ph, name)
 
     def variable_size(self, name):
         """ get Numerrin variable size
