@@ -12,6 +12,9 @@ import numerrin
 
 
 class NumerrinPool(object):
+    """ Class for operations on Numerrin variable pool
+
+    """
 
     def __init__(self):
         self.ph = numerrin.createpool()
@@ -19,13 +22,28 @@ class NumerrinPool(object):
     def __del__(self):
         numerrin.deletepool(self.ph)
 
-    def export_mesh(self, numerrinName):
-        simphonyMesh = Mesh(numerrinName)
+    def export_mesh(self, name):
+        """ export Numerrin mesh from pool to SimPhoNy Mesh object
+
+        Parameters
+        ----------
+        name : str
+            name of mesh
+
+        Return
+        ------
+        (simphonyMesh, mmap) : tuple
+            tuple of SimPhoNy mesh object and mapping from low
+            level objects uuid to Numerrin label
+
+        """
+
+        simphonyMesh = Mesh(name)
         uuids = []
         mmap = {}
-        meshsize = numerrin.meshsize(self.ph, numerrinName)
+        meshsize = numerrin.meshsize(self.ph, name)
         for i in range(meshsize[0]):
-            coord = numerrin.getnode(self.ph, numerrinName, i)
+            coord = numerrin.getnode(self.ph, name, i)
             spoint = Point(coord)
             simphonyMesh.add_point(spoint)
             uuids.append(spoint.uid)
@@ -33,7 +51,7 @@ class NumerrinPool(object):
 
         if len(meshsize) > 1:
             for i in range(meshsize[1]):
-                plbl = numerrin.getelement(self.ph, numerrinName, 1, i, 0)
+                plbl = numerrin.getelement(self.ph, name, 1, i, 0)
                 points = []
                 for pi in range(len(plbl)):
                     points.append(uuids[plbl[pi]])
@@ -43,7 +61,7 @@ class NumerrinPool(object):
 
         if len(meshsize) > 2:
             for i in range(meshsize[2]):
-                plbl = numerrin.getelement(self.ph, numerrinName, 2, i, 0)
+                plbl = numerrin.getelement(self.ph, name, 2, i, 0)
                 points = []
                 for pi in range(len(plbl)):
                     points.append(uuids[plbl[pi]])
@@ -54,7 +72,7 @@ class NumerrinPool(object):
 
         if len(meshsize) > 3:
             for i in range(meshsize[3]):
-                plbl = numerrin.getelement(self.ph, numerrinName, 3, i, 0)
+                plbl = numerrin.getelement(self.ph, name, 3, i, 0)
                 points = []
                 for pi in range(len(plbl)):
                     points.append(uuids[plbl[pi]])
@@ -65,7 +83,33 @@ class NumerrinPool(object):
 
         return (simphonyMesh, mmap)
 
-    def import_mesh(self, numerrinName, simphonyMesh):
+    def import_mesh(self, name, simphonyMesh):
+        """ import SimPhoNy mesh to Numerrin pool as Numerrin mesh
+
+        Parameters
+        ----------
+        name : str
+            name of mesh
+        SimphonyMesh : Mesh
+            Mesh object to import
+
+        Return
+        ------
+        maps : list
+            list of maps from SImPhoNy mesh low level objects
+            uid's to corresponding Numerrin mesh objects
+            mmap : dictionary
+                map from uuid to Numerrin label
+            pmap : dictionary
+                map from Numerrin point label to uuid
+            emap : dictionary
+                map from Numerrin edge label to uuid
+            fmap : dictionary
+                map from Numerrin face label to uuid
+            cmap : dictionary
+                map from Numerrin cell label to uuid
+
+        """
 
         nPoints = sum(1 for _ in simphonyMesh.iter_points())
         nEdges = sum(1 for _ in simphonyMesh.iter_edges())
@@ -73,13 +117,13 @@ class NumerrinPool(object):
         nCells = sum(1 for _ in simphonyMesh.iter_cells())
 
         sizes = (nPoints, nEdges, nFaces, nCells)
-        numerrin.initmesh(self.ph, numerrinName, 3, sizes)
+        numerrin.initmesh(self.ph, name, 3, sizes)
 
         mmap = {}
         pmap = {}
         indx = 0
         for point in simphonyMesh.iter_points():
-            numerrin.setnode(self.ph, numerrinName, indx, point.coordinates)
+            numerrin.setnode(self.ph, name, indx, point.coordinates)
             mmap[point.uid] = indx
             pmap[indx] = point.uid
             indx = indx+1
@@ -90,8 +134,8 @@ class NumerrinPool(object):
             pind = []
             for point in edge.points:
                 pind.append(mmap[point])
-            numerrin.setelementtype(self.ph, numerrinName, 1, indx, 1)
-            numerrin.setelement(self.ph, numerrinName, 1, indx, 0, tuple(pind))
+            numerrin.setelementtype(self.ph, name, 1, indx, 1)
+            numerrin.setelement(self.ph, name, 1, indx, 0, tuple(pind))
             mmap[edge.uid] = indx
             emap[indx] = edge.uid
             indx = indx+1
@@ -104,10 +148,10 @@ class NumerrinPool(object):
                 pind.append(mmap[point])
             face_renode(pind)
             if len(pind) == 3:
-                numerrin.setelementtype(self.ph, numerrinName, 2, indx, 2)
+                numerrin.setelementtype(self.ph, name, 2, indx, 2)
             else:
-                numerrin.setelementtype(self.ph, numerrinName, 2, indx, 3)
-            numerrin.setelement(self.ph, numerrinName, 2, indx, 0, tuple(pind))
+                numerrin.setelementtype(self.ph, name, 2, indx, 3)
+            numerrin.setelement(self.ph, name, 2, indx, 0, tuple(pind))
             mmap[face.uid] = indx
             fmap[indx] = face.uid
             indx = indx+1
@@ -120,18 +164,18 @@ class NumerrinPool(object):
                 pind.append(mmap[point])
             cell_renode(pind)
             if len(pind) == 4:
-                numerrin.setelementtype(self.ph, numerrinName, 3, indx, 4)
+                numerrin.setelementtype(self.ph, name, 3, indx, 4)
             elif len(pind) == 6:
-                numerrin.setelementtype(self.ph, numerrinName, 3, indx, 6)
+                numerrin.setelementtype(self.ph, name, 3, indx, 6)
             else:
-                numerrin.setelementtype(self.ph, numerrinName, 3, indx, 7)
-            numerrin.setelement(self.ph, numerrinName, 3, indx, 0, tuple(pind))
+                numerrin.setelementtype(self.ph, name, 3, indx, 7)
+            numerrin.setelement(self.ph, name, 3, indx, 0, tuple(pind))
             mmap[cell.uid] = indx
             cmap[indx] = cell.uid
             indx = indx+1
 
         # add domains
-        numcode = "omega = Domain(" + numerrinName + ")\n"
+        numcode = "omega = Domain(" + name + ")\n"
         boundaries = []
         elementcode = ""
         for face in simphonyMesh.iter_faces():
@@ -141,15 +185,15 @@ class NumerrinPool(object):
                     blabel = face.data[CUBA.LABEL]
                     if blabel not in boundaries:
                         boundaries.append(blabel)
-                    elementcode += "AddElement(" + numerrinName +\
+                    elementcode += "AddElement(" + name +\
                                    "domains" + str(blabel) + "," +\
                                    fuid + "," + fuid + ")\n" +\
-                                   "Face" + fuid + numerrinName +\
+                                   "Face" + fuid + name +\
                                    "=" + str(blabel) + "\n"
 
         for boundary in boundaries:
-            numcode += numerrinName + "domains" + str(boundary) +\
-                       "= Domain(" + numerrinName + ",2,2)\n"
+            numcode += name + "domains" + str(boundary) +\
+                       "= Domain(" + name + ",2,2)\n"
         numcode += elementcode
         code = NumerrinCode(self)
         code.parse_string(numcode)
@@ -158,35 +202,129 @@ class NumerrinPool(object):
         return [mmap, pmap, emap, fmap, cmap]
 
     def clear(self):
+        """ clear Numerrin pool
+        """
         numerrin.clearpool(self.ph)
 
     def variable_type(self, name):
-        typ = numerrin.gettype(self.ph, name)
-        return typ
+        """ get Numerrin variable type
+
+        Parameters
+        ----------
+        name : str
+            name of variable
+        Return
+        -----
+        type : str
+            variable type
+        """
+
+        return numerrin.gettype(self.ph, name)
 
     def variable_rank(self, name):
-        ran = numerrin.getrank(self.ph, name)
-        return ran
+        """ get Numerrin variable rank
+
+        Parameters
+        ----------
+        name : str
+            name of variable
+        Return
+        -----
+        rank : int
+           variable rank
+        """
+        return  numerrin.getrank(self.ph, name)
 
     def variable_size(self, name):
-        siz = numerrin.getsize(self.ph, name)
-        return siz
+        """ get Numerrin variable size
+
+        Parameters
+        ----------
+        name : str
+            name of variable
+        Return
+        -----
+        size : int
+           variable size
+        """
+        return numerrin.getsize(self.ph, name)
 
     def get_variable(self, name):
-        var = numerrin.getvariable(self.ph, name)
-        return var
+        """ get Numerrin variable values
+
+        Parameters
+        ----------
+        name : str
+            name of variable
+        Return
+        -----
+        values : tuple
+            variable values as tuple or tuple of tuples
+            if vector valued variable
+        """
+        return numerrin.getvariable(self.ph, name)
 
     def put_variable(self, name, var):
+        """ put variable to Numerrin pool
+
+        Parameters
+        ----------
+        name : str
+            name of variable
+        var : tuple
+            tuple of variable values or tuple of
+            tuples if vector valued variable
+        """
         numerrin.putvariable(self.ph, name, var)
 
     def modify_variable(self, name, var):
+        """ modify variable values in pool
+
+        Parameters
+        ----------
+        name : str
+            name of variable
+        var : tuple
+            tuple of variable new values or tuple of
+            tuples if vector valued variable
+        """
         numerrin.modifyvariable(self.ph, name, var)
 
     def get_face_points(self, name, label):
+        """ get mesh face points from pool
+
+        Parameters
+        ----------
+        name : str
+            name of mesh
+        label : int
+            face label
+
+        Return
+        ------
+        labels : list
+            list of face labels
+
+        """
         pointLabels = numerrin.getelement(self.ph, name,
                                           2, label, 0)
         return face_renode(list(pointLabels))
 
     def get_face_boundary_label(self, name, label):
+        """ get boundary label on which face belongs
+
+        Parameters
+        ----------
+        name : str
+            name of mesh
+        label : int
+            face label
+
+        Return
+        ------
+        bname : int
+            boundary label for face
+
+        """
         bname = "Face" + str(label) + name
         return self.get_variable(bname)
