@@ -22,7 +22,6 @@ class NumerrinPoolTestCase(unittest.TestCase):
     def setUp(self):
         self.mesh = Mesh(name="mesh1")
         numerrin.initlocal("", "PYNUMERRIN_LICENSE", liccode)
-        self.pool = NumerrinPool()
         self.points = [
             Point(
                 (0.0, 0.0, 0.0),
