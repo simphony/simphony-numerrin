@@ -8,7 +8,7 @@ from simphony.cuds.abstractmesh import ABCMesh
 from simphony.cuds.mesh import Face, Point, Cell
 from simphony.core.cuba import CUBA
 
-from .numerrin_templates import numname
+from .numerrin_templates import numname, numvariables
 
 import numerrin
 
@@ -94,8 +94,7 @@ class NumerrinMesh(ABCMesh):
             coords = numerrin.getnode(self.pool.ph, self.name,
                                       self._uuidToNumLabel[uuid])
             point = Point(coords, uuid)
-            dataNames = ["Velocity", "Pressure"]
-            for dataName in dataNames:
+            for dataName in numvariables:
                 try:
                     mDataName = self.name + dataName
                     if numerrin.gettype(self.pool.ph, mDataName) == "Function":
@@ -256,8 +255,7 @@ class NumerrinMesh(ABCMesh):
                 + str(point.uid)
             raise KeyError(error_str)
 
-        dataNames = ["Velocity", "Pressure"]
-        for dataName in dataNames:
+        for dataName in numvariables:
             vname = self.name + dataName
             vkey = [key for key, value in numname.iteritems() if
                     value == dataName][0]

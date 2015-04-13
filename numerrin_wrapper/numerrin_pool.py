@@ -8,6 +8,7 @@ from simphony.cuds.mesh import Mesh, Point, Edge, Face, Cell
 
 from .numerrin_code import NumerrinCode
 from .numerrin_utils import face_renode, cell_renode
+from .numerrin_templates import numvariables
 import numerrin
 
 
@@ -289,6 +290,24 @@ class NumerrinPool(object):
             tuples if vector valued variable
         """
         numerrin.modifyvariable(self.ph, name, var)
+
+    def delete_mesh_and_variables(self, name):
+        """ delete mesh and corresponding variables from pool
+
+        Parameters
+        ----------
+        name : str
+            name of mesh
+
+        """
+        
+        for dataName in numvariables:
+            try:
+                mDataName = name + dataName
+                numerrin.clearvariable(self.ph, mDataName)
+            except:
+                pass
+        numerrin.clearvariable(self.ph, name)
 
     def get_face_points(self, name, label):
         """ get mesh face points from pool
