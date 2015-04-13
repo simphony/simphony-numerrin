@@ -16,7 +16,7 @@ before_install:
   - pip install -r dev_requirements.txt
   - pip install -r doc_requirements.txt
   - pip install coveralls
-#  - ./install_num_interface.sh
+  - ./install_num_interface.sh
 install:
   - python setup.py develop
 script:
