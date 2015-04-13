@@ -12,27 +12,54 @@ class NumerrinCode(object):
 
     """
 
-    def __init__(self, pool):
-        self.ph = pool.ph
+    def __init__(self, ph):
+        self.ph = ph
         self.ch = numerrin.createcode()
 
     def __del__(self):
         numerrin.deletecode(self.ch)
 
     def parse_file(self, fileName):
+        """ parse Numerrin code in file
+
+        Parameters
+        ----------
+        fileName : str
+            name of file
+
+        """
         numerrin.parsefile(self.ph, self.ch, fileName)
 
     def parse_string(self, codeString):
+        """ parse numerrin code in string
+
+        Parameters
+        ----------
+        codeString : str
+            Numerrin code
+
+        """
         numerrin.parsestring(self.ph, self.ch, codeString)
 
     def execute(self, nproc):
+        """ execute Numerrin code
+
+        Parameters
+        ----------
+        nproc : int
+            number of processor cores
+
+        """
         numerrin.execute(self.ph, self.ch, nproc)
 
     def clear(self):
+        """ clear Numerrin code
+
+        """
         numerrin.clearcode(self.ch)
 
     def generate_code(self, CM, SP, BC, CMExt):
-        """Modify OpenFoam case files according to user settings
+        """ generate Numerrin code according to user settings
 
         Parameters
         ----------

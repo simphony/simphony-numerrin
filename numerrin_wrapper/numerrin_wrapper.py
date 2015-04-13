@@ -23,7 +23,7 @@ class NumerrinWrapper(ABCModelingEngine):
     def __init__(self):
         numerrin.initlocal("", "PYNUMERRIN_LICENSE", liccode)
         self.pool = NumerrinPool()
-        self.code = NumerrinCode(self.pool)
+        self.code = NumerrinCode(self.pool.ph)
         self._meshes = {}
         self.CM = DataContainer()
         self.SP = DataContainer()
