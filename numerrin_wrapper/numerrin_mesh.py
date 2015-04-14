@@ -53,7 +53,7 @@ class NumerrinMesh(ABCMesh):
     """
 
     def __init__(self, name, mesh, pool):
-
+        super(NumerrinMesh, self).__init__()
         self.name = name
         self.pool = pool
         maps = self.pool.import_mesh(name, mesh)
