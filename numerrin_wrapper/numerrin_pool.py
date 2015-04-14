@@ -196,7 +196,7 @@ class NumerrinPool(object):
             numcode += name + "domains" + str(boundary) +\
                        "= Domain(" + name + ",2,2)\n"
         numcode += elementcode
-        code = NumerrinCode(self)
+        code = NumerrinCode(self.ph)
         code.parse_string(numcode)
         code.execute(1)
 
