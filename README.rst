@@ -24,6 +24,12 @@ or::
     # build for in-place development
     python setup.py develop
 
+After installation the environment variable LD_LIBRARY_PATH should be set 
+to point to site-packages. This can be done sourcing in installation directory
+
+source .bashrc
+
+
 License for Numerrin
 --------------------
 
