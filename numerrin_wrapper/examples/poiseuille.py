@@ -38,7 +38,5 @@ print "Mesh name ", mesh_from_file.name
 
 mesh_inside_wrapper = wrapper.add_mesh(mesh_from_file)
 
-
-# run returns the latest step
-latestStep = wrapper.run()
-print "Steps taken ", latestStep
+wrapper.run()
+print "Steps taken ", mesh_inside_wrapper._time

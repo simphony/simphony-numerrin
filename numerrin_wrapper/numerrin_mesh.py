@@ -56,6 +56,7 @@ class NumerrinMesh(ABCMesh):
         super(NumerrinMesh, self).__init__()
         self.name = name
         self.pool = pool
+        self._time = str(0)
         maps = self.pool.import_mesh(name, mesh)
         self._uuidToNumLabel = maps[0]
         self._numPointLabelToUuid = maps[1]
@@ -94,14 +95,16 @@ class NumerrinMesh(ABCMesh):
             coords = numerrin.getnode(self.pool.ph, self.name,
                                       self._uuidToNumLabel[uuid])
             point = Point(coords, uuid)
-            for dataName in numvariables:
+            for dkey in numvariables:
+                dataName = numname[dkey]
+                mDataName = self.name + dataName
                 try:
-                    mDataName = self.name + dataName
                     if numerrin.gettype(self.pool.ph, mDataName) == "Function":
                         dataV = numerrin.getrealfunction(self.pool.ph,
                                                          mDataName)
                     else:
-                        dataV = numerrin.getvariable(self.pool.ph, mDataName)
+                        dataV = numerrin.getvariable(self.pool.ph,
+                                                     mDataName)
                     dkey = [key for key, value in numname.iteritems() if
                             value == dataName][0]
                     point.data[dkey] = dataV[self._uuidToNumLabel[uuid]]
@@ -255,18 +258,18 @@ class NumerrinMesh(ABCMesh):
                 + str(point.uid)
             raise KeyError(error_str)
 
-        for dataName in numvariables:
+        for dkey in numvariables:
+            dataName = numname[dkey]
             vname = self.name + dataName
             vkey = [key for key, value in numname.iteritems() if
                     value == dataName][0]
-            try:
-                if vkey in point.data:
+            if vkey in point.data:
+                try:
                     vdata = list(self.pool.get_variable(vname))
                     vdata[self._uuidToNumLabel[point.uid]] = point.data[vkey]
                     self.pool.modify_variable(vname, tuple(vdata))
-            except:
-                # create variable
-                if vkey in point.data:
+                except:
+                    # create variable
                     var = point.data[vkey]
                     if type(var) is tuple:
                         vdata = list([(0, 0, 0) for _ in self.iter_points()])

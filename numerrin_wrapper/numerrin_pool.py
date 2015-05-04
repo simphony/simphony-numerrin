@@ -8,7 +8,7 @@ from simphony.cuds.mesh import Mesh, Point, Edge, Face, Cell
 
 from .numerrin_code import NumerrinCode
 from .numerrin_utils import face_renode, cell_renode
-from .numerrin_templates import numvariables
+from .numerrin_templates import numvariables, numname
 import numerrin
 
 
@@ -300,9 +300,10 @@ class NumerrinPool(object):
             name of mesh
 
         """
-        
-        for dataName in numvariables:
+
+        for dkey in numvariables:
             try:
+                dataName = numname[dkey]
                 mDataName = name + dataName
                 numerrin.clearvariable(self.ph, mDataName)
             except:

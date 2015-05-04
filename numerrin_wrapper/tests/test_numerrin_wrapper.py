@@ -86,7 +86,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
         wrapper = NumerrinWrapper()
         wrapper.add_mesh(self.mesh)
         wrapper.delete_mesh(self.mesh.name)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(KeyError):
             wrapper.get_mesh(self.mesh.name)
 
     def test_get_mesh(self):

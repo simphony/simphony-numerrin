@@ -35,11 +35,6 @@ class NumerrinWrapper(ABCModelingEngine):
     def run(self):
         """Run Numerrin based on CM, BC and SP data
 
-        Returns
-        -------
-        lastIterationStep : int
-            Last iteration step step taken.
-
         Raises
         ------
         Exception when solver not supported.
@@ -60,8 +55,9 @@ class NumerrinWrapper(ABCModelingEngine):
 
         # execute code
         self.code.execute(1)
-
-        return self.pool.get_variable('iteration')
+        # save last iteration
+        for mesh in self.iter_meshes():
+            mesh._time = self.pool.get_variable('iteration')
 
     def add_mesh(self, mesh):
         """Add a mesh to the Numerrin modeling engine.
@@ -86,9 +82,9 @@ class NumerrinWrapper(ABCModelingEngine):
 
         if mesh.name in self._meshes:
             raise ValueError('Mesh \'{}\` already exists'.format(mesh.name))
-        else:
-            self._meshes[mesh.name] = NumerrinMesh(mesh.name, mesh, self.pool)
-            return self._meshes[mesh.name]
+
+        self._meshes[mesh.name] = NumerrinMesh(mesh.name, mesh, self.pool)
+        return self._meshes[mesh.name]
 
     def get_mesh(self, name):
         """Get a mesh.
@@ -105,17 +101,9 @@ class NumerrinWrapper(ABCModelingEngine):
         -------
         NumerrinMesh
 
-        Raises
-        ------
-        Exception if mesh not found
-
         """
 
-        if name in self._meshes:
-            return self._meshes[name]
-        else:
-            raise ValueError(
-                'Mesh \'{}\` does not exist'.format(name))
+        return self._meshes[name]
 
     def iter_meshes(self, names=None):
         """Returns an iterator over a subset or all of the meshes.
@@ -164,12 +152,9 @@ class NumerrinWrapper(ABCModelingEngine):
 
         """
 
-        if name not in self._meshes:
-            raise ValueError('Mesh \'{}\` does not exists'.format(name))
-        else:
-            # here operation to pool of deleting mesh and
-            # corresponding variables should be added
-            del self._meshes[name]
+        # here operation to pool of deleting mesh and
+        # corresponding variables should be added
+        del self._meshes[name]
 
     def add_particles(self, particle_container):
         message = 'NumerrinWrapper does not handle particle container'
