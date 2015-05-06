@@ -2,4 +2,4 @@
 # when the `openfoam` module is imported.
 from .numerrin_wrapper import NumerrinWrapper
 from .cuba_extension import CUBAExt
-__all__ = ['FoamControlWrapper', 'CUBAExt']
+__all__ = ['NumerrinWrapper', 'CUBAExt']

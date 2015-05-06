@@ -8,7 +8,7 @@ numerrin_code module functionalities
 import unittest
 import os
 
-from simphony.cuds.mesh import Mesh, Face, Point, Cell, Edge
+from simphony.cuds.mesh import Mesh, Face, Point, Cell
 from simphony.core.cuba import CUBA
 from simphony.core.data_container import DataContainer
 
@@ -78,7 +78,6 @@ class NumerrinCodeTestCase(unittest.TestCase):
 
         [self.mesh.add_cell(cell) for cell in self.cells]
 
-
     def test_parse_file(self):
         """Test parse_file method
 
@@ -96,7 +95,7 @@ class NumerrinCodeTestCase(unittest.TestCase):
         self.code.parse_string(self.codestring)
         with self.assertRaises(RuntimeError):
             self.code.parse_string(self.errorcodestring)
-        
+
     def test_execute(self):
         """Test execute method
 
@@ -108,7 +107,7 @@ class NumerrinCodeTestCase(unittest.TestCase):
         """Test clear method
 
         """
-        
+
         self.code.parse_string(self.exceptionstring)
         with self.assertRaises(RuntimeError):
             self.code.execute(1)
@@ -125,7 +124,7 @@ class NumerrinCodeTestCase(unittest.TestCase):
         CMExt = {}
         CM[CUBA.NAME] = self.mesh.name
         CMExt[CUBAExt.GE] = (CUBAExt.INCOMPRESSIBLE,
-                                             CUBAExt.LAMINAR_MODEL)
+                             CUBAExt.LAMINAR_MODEL)
         SP[CUBA.TIME_STEP] = 1
         SP[CUBA.NUMBER_OF_TIME_STEPS] = 2
         SP[CUBA.DENSITY] = 1.0
@@ -136,7 +135,7 @@ class NumerrinCodeTestCase(unittest.TestCase):
         self.pool.import_mesh(self.mesh.name, self.mesh)
         for key in SP:
             self.pool.put_variable(numname[key], SP[key])
-        
+
         codestring = self.code.generate_code(CM, SP, BC, CMExt)
 
         self.code.parse_string(codestring)
