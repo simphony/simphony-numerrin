@@ -194,7 +194,7 @@ class NumerrinPool(object):
 
         for boundary in boundaries:
             numcode += name + "domains" + str(boundary) +\
-                       "= Domain(" + name + ",2,2)\n"
+                "= Domain(" + name + ",2,2)\n"
         numcode += elementcode
         code = NumerrinCode(self.ph)
         code.parse_string(numcode)
