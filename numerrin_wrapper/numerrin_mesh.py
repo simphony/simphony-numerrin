@@ -105,8 +105,6 @@ class NumerrinMesh(ABCMesh):
                     else:
                         dataV = numerrin.getvariable(self.pool.ph,
                                                      mDataName)
-                    dkey = [key for key, value in numname.iteritems() if
-                            value == dataName][0]
                     point.data[dkey] = dataV[self._uuidToNumLabel[uuid]]
                 except:
                     pass
@@ -261,22 +259,20 @@ class NumerrinMesh(ABCMesh):
         for dkey in numvariables:
             dataName = numname[dkey]
             vname = self.name + dataName
-            vkey = [key for key, value in numname.iteritems() if
-                    value == dataName][0]
-            if vkey in point.data:
+            if dkey in point.data:
                 try:
                     vdata = list(self.pool.get_variable(vname))
-                    vdata[self._uuidToNumLabel[point.uid]] = point.data[vkey]
+                    vdata[self._uuidToNumLabel[point.uid]] = point.data[dkey]
                     self.pool.modify_variable(vname, tuple(vdata))
                 except:
                     # create variable
-                    var = point.data[vkey]
+                    var = point.data[dkey]
                     if type(var) is tuple:
                         vdata = list([(0, 0, 0) for _ in self.iter_points()])
                     else:
                         vdata = list([0 for _ in self.iter_points()])
 
-                    vdata[self._uuidToNumLabel[point.uid]] = point.data[vkey]
+                    vdata[self._uuidToNumLabel[point.uid]] = point.data[dkey]
                     self.pool.put_variable(vname, tuple(vdata))
 
     def update_edge(self, edge):
