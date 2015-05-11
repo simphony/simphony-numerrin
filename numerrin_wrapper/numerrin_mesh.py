@@ -104,7 +104,7 @@ class NumerrinMesh(ABCMesh):
                     else:
                         dataV = self.pool.get_variable(mDataName)
                     point.data[dkey] = dataV[self._uuidToNumLabel[uuid]]
-                except:
+                except RuntimeError:
                     pass
 
             return point
@@ -171,7 +171,7 @@ class NumerrinMesh(ABCMesh):
                 blabel = self.pool.get_face_boundary_label(
                     self.name, self._uuidToNumLabel[uuid])
                 face.data[CUBA.LABEL] = blabel
-            except:
+            except RuntimeError:
                 pass
             return face
         except KeyError:

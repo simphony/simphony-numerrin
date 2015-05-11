@@ -317,11 +317,11 @@ class NumerrinPool(object):
         """
 
         for dkey in numvariables:
+            dataName = numname[dkey]
+            mDataName = name + dataName
             try:
-                dataName = numname[dkey]
-                mDataName = name + dataName
                 numerrin.clearvariable(self.ph, mDataName)
-            except:
+            except RuntimeError:
                 pass
         numerrin.clearvariable(self.ph, name)
 
