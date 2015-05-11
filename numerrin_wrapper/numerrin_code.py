@@ -127,8 +127,7 @@ class NumerrinCode(object):
         GE = CMExt[CUBAExt.GE]
         if CUBAExt.LAMINAR_MODEL in GE:
             solver = "stabilizedLaminarNS3D"
-            if solver == 'stabilizedLaminarNS3D':
-                funccode += functions[solver]
+            funccode += functions[solver]
         else:
             error_str = "GE does not define supported solver: GE = {}"
             raise NotImplementedError(error_str.format(GE))
