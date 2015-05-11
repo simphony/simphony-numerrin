@@ -265,6 +265,21 @@ class NumerrinPool(object):
         """
         return numerrin.getvariable(self.ph, name)
 
+    def get_real_function(self, name):
+        """ get Numerrin function values
+
+        Parameters
+        ----------
+        name : str
+            name of variable
+        Return
+        -----
+        values : tuple
+            variable values as tuple or tuple of tuples
+            if vector valued variable
+        """
+        return numerrin.getrealfunction(self.ph, name)
+
     def put_variable(self, name, var):
         """ put variable to Numerrin pool
 
@@ -309,6 +324,20 @@ class NumerrinPool(object):
             except:
                 pass
         numerrin.clearvariable(self.ph, name)
+
+    def mesh_size(self, name):
+        """ get Numerrin mesh size
+
+        Parameters
+        ----------
+        name : str
+            name of variable
+        Return
+        -----
+        size : int tuple
+           mesh size in different levels
+        """
+        return numerrin.meshsize(self.ph, name)
 
     def get_face_points(self, name, label):
         """ get mesh face points from pool

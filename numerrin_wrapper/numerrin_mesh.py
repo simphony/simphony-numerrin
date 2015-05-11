@@ -99,12 +99,10 @@ class NumerrinMesh(ABCMesh):
                 dataName = numname[dkey]
                 mDataName = self.name + dataName
                 try:
-                    if numerrin.gettype(self.pool.ph, mDataName) == "Function":
-                        dataV = numerrin.getrealfunction(self.pool.ph,
-                                                         mDataName)
+                    if self.pool.variable_type(mDataName) == "Function":
+                        dataV = self.pool.get_real_function(mDataName)
                     else:
-                        dataV = numerrin.getvariable(self.pool.ph,
-                                                     mDataName)
+                        dataV = self.pool.get_variable(mDataName)
                     point.data[dkey] = dataV[self._uuidToNumLabel[uuid]]
                 except:
                     pass
@@ -309,7 +307,7 @@ class NumerrinMesh(ABCMesh):
         """
 
         if point_uuids is None:
-            pointCount = numerrin.meshsize(self.pool.ph, self.name)[0]
+            pointCount = self.pool.mesh_size(self.name)[0]
             for label in range(pointCount):
                 yield self.get_point(self._numPointLabelToUuid[label])
         else:
@@ -339,7 +337,7 @@ class NumerrinMesh(ABCMesh):
         """
 
         if edge_uuids is None:
-            edgeCount = numerrin.meshsize(self.pool.ph, self.name)[1]
+            edgeCount = self.pool.mesh_size(self.name)[1]
             for label in range(edgeCount):
                 yield self.get_edge(self._numEdgeLabelToUuid[label])
         else:
@@ -369,7 +367,7 @@ class NumerrinMesh(ABCMesh):
         """
 
         if face_uuids is None:
-            faceCount = numerrin.meshsize(self.pool.ph, self.name)[2]
+            faceCount = self.pool.mesh_size(self.name)[2]
             for label in range(faceCount):
                 yield self.get_face(self._numFaceLabelToUuid[label])
         else:
@@ -399,7 +397,7 @@ class NumerrinMesh(ABCMesh):
         """
 
         if cell_uuids is None:
-            cellCount = numerrin.meshsize(self.pool.ph, self.name)[3]
+            cellCount = self.pool.mesh_size(self.name)[3]
             for label in range(cellCount):
                 yield self.get_cell(self._numCellLabelToUuid[label])
         else:
@@ -418,7 +416,7 @@ class NumerrinMesh(ABCMesh):
 
         """
 
-        numberEdges = numerrin.meshsize(self.pool.ph, self.name)[1]
+        numberEdges = self.pool.mesh_size(self.name)[1]
         return numberEdges > 0
 
     def has_faces(self):
@@ -431,7 +429,7 @@ class NumerrinMesh(ABCMesh):
             False otherwise
 
         """
-        numberFaces = numerrin.meshsize(self.pool.ph, self.name)[2]
+        numberFaces = self.pool.mesh_size(self.name)[2]
         return numberFaces > 0
 
     def has_cells(self):
@@ -444,5 +442,5 @@ class NumerrinMesh(ABCMesh):
             False otherwise
 
         """
-        numberCells = numerrin.meshsize(self.pool.ph, self.name)[3]
+        numberCells = self.pool.mesh_size(self.name)[3]
         return numberCells > 0

@@ -130,12 +130,7 @@ class NumerrinWrapper(ABCModelingEngine):
                 yield self._meshes[name]
         else:
             for name in names:
-                if name in self._meshes:
-                    yield self._meshes[name]
-                else:
-                    raise ValueError(
-                        'Mesh \'{}\` does not exist'.format(
-                            name))
+                yield self._meshes[name]
 
     def delete_mesh(self, name):
         """Delete mesh from the Numerrin modeling engine.
