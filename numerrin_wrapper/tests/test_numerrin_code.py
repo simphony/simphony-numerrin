@@ -50,7 +50,7 @@ class NumerrinCodeTestCase(unittest.TestCase):
                 (0.0, 1.0, 1.0))
         ]
 
-        puids = [self.mesh.add_point(point) for point in self.points]
+        puids = self.mesh.add_points(self.points)
 
         self.faces = [
             Face([puids[0], puids[3], puids[7], puids[4]],
@@ -68,7 +68,7 @@ class NumerrinCodeTestCase(unittest.TestCase):
 
         ]
 
-        [self.mesh.add_face(face) for face in self.faces]
+        self.mesh.add_faces(self.faces)
 
         self.cells = [
             Cell(puids)
@@ -76,7 +76,7 @@ class NumerrinCodeTestCase(unittest.TestCase):
 
         self.puids = puids
 
-        [self.mesh.add_cell(cell) for cell in self.cells]
+        self.mesh.add_cells(self.cells)
 
     def test_parse_file(self):
         """Test parse_file method

@@ -43,24 +43,30 @@ class NumerrinPool(object):
         uuids = []
         mmap = {}
         meshsize = numerrin.meshsize(self.ph, name)
+        spoints = []
         for i in range(meshsize[0]):
             coord = numerrin.getnode(self.ph, name, i)
             spoint = Point(coord)
-            simphonyMesh.add_point(spoint)
+            spoints.append(spoint)
             uuids.append(spoint.uid)
             mmap[spoint.uid] = i
 
+        simphonyMesh.add_points(spoints)
+
         if len(meshsize) > 1:
+            edges = []
             for i in range(meshsize[1]):
                 plbl = numerrin.getelement(self.ph, name, 1, i, 0)
                 points = []
                 for pi in range(len(plbl)):
                     points.append(uuids[plbl[pi]])
                 ed = Edge(points)
-                simphonyMesh.add_edge(ed)
+                edges.append(ed)
                 mmap[ed.uid] = i
+            simphonyMesh.add_edges(edges)
 
         if len(meshsize) > 2:
+            faces = []
             for i in range(meshsize[2]):
                 plbl = numerrin.getelement(self.ph, name, 2, i, 0)
                 points = []
@@ -68,10 +74,12 @@ class NumerrinPool(object):
                     points.append(uuids[plbl[pi]])
                 face_renode(points)
                 fa = Face(points)
-                simphonyMesh.add_face(fa)
+                faces.append(fa)
                 mmap[fa.uid] = i
+            simphonyMesh.add_faces(faces)
 
         if len(meshsize) > 3:
+            cells = []
             for i in range(meshsize[3]):
                 plbl = numerrin.getelement(self.ph, name, 3, i, 0)
                 points = []
@@ -79,8 +87,9 @@ class NumerrinPool(object):
                     points.append(uuids[plbl[pi]])
                 cell_renode(points)
                 ce = Cell(points)
-                simphonyMesh.add_cell(ce)
+                cells.append(ce)
                 mmap[ce.uid] = i
+            simphonyMesh.add_cells(cells)
 
         return (simphonyMesh, mmap)
 

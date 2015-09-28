@@ -56,10 +56,10 @@ class NumerrinWrapper(ABCModelingEngine):
         # execute code
         self.code.execute(1)
         # save last iteration
-        for mesh in self.iter_meshes():
+        for mesh in self.iter_datasets():
             mesh._time = self.pool.get_variable('iteration')
 
-    def add_mesh(self, mesh):
+    def add_dataset(self, mesh):
         """Add a mesh to the Numerrin modeling engine.
 
         Parameters
@@ -86,7 +86,7 @@ class NumerrinWrapper(ABCModelingEngine):
         self._meshes[mesh.name] = NumerrinMesh(mesh.name, mesh, self.pool)
         return self._meshes[mesh.name]
 
-    def get_mesh(self, name):
+    def get_dataset(self, name):
         """Get a mesh.
 
         The returned mesh can be used to query and update the state of the
@@ -105,7 +105,7 @@ class NumerrinWrapper(ABCModelingEngine):
 
         return self._meshes[name]
 
-    def iter_meshes(self, names=None):
+    def iter_datasets(self, names=None):
         """Returns an iterator over a subset or all of the meshes.
 
         Parameters
@@ -132,7 +132,7 @@ class NumerrinWrapper(ABCModelingEngine):
             for name in names:
                 yield self._meshes[name]
 
-    def delete_mesh(self, name):
+    def remove_dataset(self, name):
         """Delete mesh from the Numerrin modeling engine.
 
         Parameters
@@ -151,34 +151,9 @@ class NumerrinWrapper(ABCModelingEngine):
         # corresponding variables should be added
         del self._meshes[name]
 
-    def add_particles(self, particle_container):
-        message = 'NumerrinWrapper does not handle particle container'
-        raise NotImplementedError(message)
+    def get_dataset_names(self):
+        """ Returns the names of the meshes.
 
-    def get_particles(self, name):
-        message = 'NumerrinWrapper does not handle particle container'
-        raise NotImplementedError(message)
+        """
 
-    def delete_particles(self, name):
-        message = 'NumerrinWrapper does not handle particle container'
-        raise NotImplementedError(message)
-
-    def iter_particles(self, names=None):
-        message = 'NumerrinWrapper does not handle particle container'
-        raise NotImplementedError(message)
-
-    def add_lattice(self, lattice):
-        message = 'NumerrinWrapper does not handle lattice'
-        raise NotImplementedError(message)
-
-    def get_lattice(self, name):
-        message = 'NumerrinWrapper does not handle lattice'
-        raise NotImplementedError(message)
-
-    def delete_lattice(self, name):
-        message = 'NumerrinWrapper does not handle lattice'
-        raise NotImplementedError(message)
-
-    def iter_lattices(self, names=None):
-        message = 'NumerrinWrapper does not handle lattice'
-        raise NotImplementedError(message)
+        return self._meshes.keys()

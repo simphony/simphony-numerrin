@@ -4,9 +4,10 @@ This module contains the implementation to store, access,
 and modify a mesh and related data
 
 """
-from simphony.cuds.abstractmesh import ABCMesh
+from simphony.cuds.abc_mesh import ABCMesh
 from simphony.cuds.mesh import Face, Point, Cell
 from simphony.core.cuba import CUBA
+from simphony.core.cuds_item import CUDSItem
 
 from .numerrin_templates import numname, numvariables
 
@@ -64,8 +65,7 @@ class NumerrinMesh(ABCMesh):
         self._numFaceLabelToUuid = maps[3]
         self._numCellLabelToUuid = maps[4]
         # point data
-        for point in mesh.iter_points():
-            self.update_point(point)
+        self.update_points(list(mesh.iter_points()))
 
     def get_point(self, uuid):
         """Returns a point with a given uuid.
@@ -214,33 +214,33 @@ class NumerrinMesh(ABCMesh):
             error_str = "Trying to get an non-existing cell with uuid: {}"
             raise ValueError(error_str.format(uuid))
 
-    def add_point(self, point):
-        message = 'Point addition not supported yet'
+    def add_points(self, points):
+        message = 'Points addition not supported yet'
         raise NotImplementedError(message)
 
-    def add_edge(self, edge):
-        message = 'Edge addition not supported yet'
+    def add_edges(self, edges):
+        message = 'Edges addition not supported yet'
         raise NotImplementedError(message)
 
-    def add_face(self, face):
-        message = 'Face addition not supported yet'
+    def add_faces(self, faces):
+        message = 'Faces addition not supported yet'
         raise NotImplementedError(message)
 
-    def add_cell(self, cell):
-        message = 'Cell addition not supported yet'
+    def add_cells(self, cells):
+        message = 'Cells addition not supported yet'
         raise NotImplementedError(message)
 
-    def update_point(self, point):
-        """ Updates the information of a point.
+    def update_points(self, points):
+        """ Updates the information of a set of points.
 
-        Gets the mesh point identified by the same
+        Gets the mesh point from set identified by the same
         uuid as the provided point and updates its data
         with the one provided with the new point.
 
         Parameters
         ----------
-        point : Point
-            Point to be updated
+        points : iterable of Point
+            Points to be updated
 
         Raises
         ------
@@ -249,40 +249,49 @@ class NumerrinMesh(ABCMesh):
 
         """
 
-        if point.uid not in self._uuidToNumLabel:
-            error_str = "Trying to update a non-existing point with uuid: "\
-                + str(point.uid)
-            raise KeyError(error_str)
+        vdata = {}
+        for point in points:
+            if point.uid not in self._uuidToNumLabel:
+                error_str =\
+                    "Trying to update a non-existing point with uuid: "\
+                    + str(point.uid)
+                raise KeyError(error_str)
 
-        for dkey in numvariables:
-            dataName = numname[dkey]
-            vname = self.name + dataName
-            if dkey in point.data:
-                try:
-                    vdata = list(self.pool.get_variable(vname))
-                    vdata[self._uuidToNumLabel[point.uid]] = point.data[dkey]
-                    self.pool.modify_variable(vname, tuple(vdata))
-                except:
-                    # create variable
-                    var = point.data[dkey]
-                    if type(var) is tuple:
-                        vdata = list([(0, 0, 0) for _ in self.iter_points()])
-                    else:
-                        vdata = list([0 for _ in self.iter_points()])
+            for dkey in numvariables:
+                dataName = numname[dkey]
+                vname = self.name + dataName
+                if dkey in point.data:
+                    try:
+                        if vname not in vdata:
+                            vdata[vname] = list(self.pool.get_variable(vname))
+                        vdata[vname][self._uuidToNumLabel[point.uid]] =\
+                            point.data[dkey]
+                    except:
+                        # create variable if not in pool
+                        var = point.data[dkey]
+                        if type(var) is tuple:
+                            vdata[vname] =\
+                                list([(0, 0, 0) for _ in self.iter_points()])
+                        else:
+                            vdata[vname] =\
+                                list([0 for _ in self.iter_points()])
+                        vdata[vname][self._uuidToNumLabel[point.uid]] =\
+                            point.data[dkey]
+                        self.pool.put_variable(vname, tuple(vdata[vname]))
 
-                    vdata[self._uuidToNumLabel[point.uid]] = point.data[dkey]
-                    self.pool.put_variable(vname, tuple(vdata))
+        for vname in vdata:
+            self.pool.modify_variable(vname, tuple(vdata[vname]))
 
-    def update_edge(self, edge):
-        message = 'Edge update not supported yet'
+    def update_edges(self, edges):
+        message = 'Edges update not supported yet'
         raise NotImplementedError(message)
 
-    def update_face(self, face):
-        message = 'Face update not supported yet'
+    def update_faces(self, faces):
+        message = 'Faces update not supported yet'
         raise NotImplementedError(message)
 
-    def update_cell(self, cell):
-        message = 'Cell update not supported yet'
+    def update_cells(self, cells):
+        message = 'Cells update not supported yet'
         raise NotImplementedError(message)
 
     def iter_points(self, point_uuids=None):
@@ -444,3 +453,36 @@ class NumerrinMesh(ABCMesh):
         """
         numberCells = self.pool.mesh_size(self.name)[3]
         return numberCells > 0
+
+    def count_of(self, item_type):
+        """ Return the count of item_type in the container.
+
+        Parameters
+        ----------
+        item_type : CUDSItem
+            The CUDSItem enum of the type of the items to return the count of.
+
+        Returns
+        -------
+        count : int
+            The number of items of item_type in the container.
+
+        Raises
+        ------
+        ValueError :
+            If the type of the item is not supported in the current
+            container.
+
+        """
+
+        if item_type == CUDSItem.POINT:
+            return self.pool.mesh_size(self.name)[0]
+        elif item_type == CUDSItem.EDGE:
+            return self.pool.mesh_size(self.name)[1]
+        elif item_type == CUDSItem.FACE:
+            return self.pool.mesh_size(self.name)[2]
+        elif item_type == CUDSItem.CELL:
+            return self.pool.mesh_size(self.name)[3]
+        else:
+            error_str = 'Item type {} not supported'
+            raise ValueError(error_str.format(item_type))
