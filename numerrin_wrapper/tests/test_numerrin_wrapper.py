@@ -15,7 +15,7 @@ from simphony.io.h5_cuds import H5CUDS
 
 from numerrin_wrapper.numerrin_wrapper import NumerrinWrapper
 from numerrin_wrapper.cuba_extension import CUBAExt
-
+from numerrin_wrapper.mesh_utils import create_quad_mesh
 
 class NumerrinWrapperTestCase(unittest.TestCase):
     """Test case for NumerrinWrapper class"""
@@ -153,11 +153,19 @@ class NumerrinWrapperTestCase(unittest.TestCase):
 
         wrapper = NumerrinWrapper()
         name = 'simplemesh'
+        corner_points=((0.0,0.0), (1.0,0.0), (1.0,1.0), (0.0,1.0))
+        extrude_length = 1
+        nex = 3
+        ney = 3
+        nez = 3
+        create_quad_mesh(name, wrapper, corner_points,
+                         extrude_length, nex, ney, nez)
+
         wrapper.CM[CUBA.NAME] = name
         wrapper.CM_extensions[CUBAExt.GE] = (CUBAExt.INCOMPRESSIBLE,
                                              CUBAExt.LAMINAR_MODEL)
         wrapper.SP[CUBA.TIME_STEP] = 1
-        wrapper.SP[CUBA.NUMBER_OF_TIME_STEPS] = 2
+        wrapper.SP[CUBA.NUMBER_OF_TIME_STEPS] = 10
         wrapper.SP[CUBA.DENSITY] = 1.0
         wrapper.SP[CUBA.DYNAMIC_VISCOSITY] = 1.0
         wrapper.BC[CUBA.VELOCITY] = {'boundary0': (0.1, 0, 0),
@@ -168,32 +176,35 @@ class NumerrinWrapperTestCase(unittest.TestCase):
                                      'boundary1': 0,
                                      'boundary2': 'zeroGradient',
                                      'boundary3': 'empty'}
-        mesh_file = H5CUDS.open(os.path.join('numerrin_wrapper',
-                                             'tests',
-                                             'simplemesh.cuds'))
-        mesh_from_file = mesh_file.get_dataset(name)
 
-        mesh_inside_wrapper = wrapper.add_dataset(mesh_from_file)
+        mesh_inside_wrapper = wrapper.get_dataset(name)
 
         wrapper.run()
 
-        point_uid = mesh_inside_wrapper._numPointLabelToUuid[30]
-        point = mesh_inside_wrapper.get_point(point_uid)
-        old_vel = point.data[CUBA.VELOCITY]
-        old_pres = point.data[CUBA.PRESSURE]
+        # sum data pointwise
+        old_vel = 0.0
+        old_pres = 0.0
+        for point in mesh_inside_wrapper.iter_points():
+            old_vel += point.data[CUBA.VELOCITY]
+            old_pres += point.data[CUBA.PRESSURE]
 
-        wrapper.SP[CUBA.DENSITY] = 2.0
+
+        wrapper.SP[CUBA.DENSITY] = 5.0
         wrapper.run()
 
-        point = mesh_inside_wrapper.get_point(point_uid)
-        new_vel = point.data[CUBA.VELOCITY]
-        new_pres = point.data[CUBA.PRESSURE]
+        # sum data pointwise
+        new_vel = 0.0
+        new_pres = 0.0
+        for point in mesh_inside_wrapper.iter_points():
+            new_vel += point.data[CUBA.VELOCITY]
+            new_pres += point.data[CUBA.PRESSURE]
 
-        self.assertNotEqual(old_vel, new_vel)
-        self.assertNotEqual(old_pres, new_pres)
 
-        mesh_file.close()
+        self.assertNotAlmostEqual(old_vel, new_vel, 5)
+        self.assertNotAlmostEqual(old_pres, new_pres, 5)
 
+
+ 
 
 if __name__ == '__main__':
     unittest.main()

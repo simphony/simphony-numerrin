@@ -186,7 +186,8 @@ class NumerrinPoolTestCase(unittest.TestCase):
 
         pool = NumerrinPool()
         pool.import_mesh(self.mesh.name, self.mesh)
-        (smesh, mmap) = pool.export_mesh(self.mesh.name)
+        boundaries = [0, 1, 2, 3, 4, 5]
+        (smesh, mmap) = pool.export_mesh(self.mesh.name, boundaries)
         self.assertEqual(sum(1 for _ in smesh.iter_points()),
                          sum(1 for _ in self.mesh.iter_points()))
         self.assertEqual(sum(1 for _ in smesh.iter_faces()),

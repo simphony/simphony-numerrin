@@ -2,4 +2,5 @@
 # when the `openfoam` module is imported.
 from .numerrin_wrapper import NumerrinWrapper
 from .cuba_extension import CUBAExt
-__all__ = ['NumerrinWrapper', 'CUBAExt']
+from .mesh_utils import create_quad_mesh
+__all__ = ['NumerrinWrapper', 'CUBAExt','create_quad_mesh']

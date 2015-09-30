@@ -7,8 +7,8 @@ from simphony.core.cuba import CUBA
 from simphony.cuds.mesh import Mesh, Point, Edge, Face, Cell
 
 from .numerrin_code import NumerrinCode
-from .numerrin_utils import face_renode, cell_renode
-from .numerrin_templates import numvariables, numname
+from .numerrin_utils import (face_renode, cell_renode, generate_uuid)
+from .numerrin_templates import (numvariables, numname)
 import numerrin
 
 
@@ -23,13 +23,16 @@ class NumerrinPool(object):
     def __del__(self):
         numerrin.deletepool(self.ph)
 
-    def export_mesh(self, name):
+    def export_mesh(self, name, boundaries):
         """ export Numerrin mesh from pool to SimPhoNy Mesh object
 
         Parameters
         ----------
         name : str
             name of mesh
+
+        name : list int
+            list of boundary numbers to be exported
 
         Return
         ------
@@ -46,7 +49,7 @@ class NumerrinPool(object):
         spoints = []
         for i in range(meshsize[0]):
             coord = numerrin.getnode(self.ph, name, i)
-            spoint = Point(coord)
+            spoint = Point(coord, uid=generate_uuid())
             spoints.append(spoint)
             uuids.append(spoint.uid)
             mmap[spoint.uid] = i
@@ -60,12 +63,13 @@ class NumerrinPool(object):
                 points = []
                 for pi in range(len(plbl)):
                     points.append(uuids[plbl[pi]])
-                ed = Edge(points)
+                ed = Edge(points, uid=generate_uuid())
                 edges.append(ed)
                 mmap[ed.uid] = i
             simphonyMesh.add_edges(edges)
 
         if len(meshsize) > 2:
+            labeluidmap = {}
             faces = []
             for i in range(meshsize[2]):
                 plbl = numerrin.getelement(self.ph, name, 2, i, 0)
@@ -73,10 +77,23 @@ class NumerrinPool(object):
                 for pi in range(len(plbl)):
                     points.append(uuids[plbl[pi]])
                 face_renode(points)
-                fa = Face(points)
+                fa = Face(points, uid=generate_uuid())
                 faces.append(fa)
                 mmap[fa.uid] = i
+                labeluidmap[i] = fa.uid
             simphonyMesh.add_faces(faces)
+
+            faces_to_update = []
+            for boundary in boundaries:
+                boundary_name = name+"domains"+str(boundary)
+                boundary_faces = numerrin.getelementnumbers(self.ph,
+                                                            boundary_name)
+                for boundary_face in boundary_faces:
+                    face = simphonyMesh.get_face(labeluidmap[boundary_face])
+                    # boundaryname ends to number which is used for label
+                    face.data[CUBA.LABEL] = boundary
+                    faces_to_update.append(face)
+            simphonyMesh.update_faces(faces_to_update)
 
         if len(meshsize) > 3:
             cells = []
@@ -86,7 +103,7 @@ class NumerrinPool(object):
                 for pi in range(len(plbl)):
                     points.append(uuids[plbl[pi]])
                 cell_renode(points)
-                ce = Cell(points)
+                ce = Cell(points, uid=generate_uuid())
                 cells.append(ce)
                 mmap[ce.uid] = i
             simphonyMesh.add_cells(cells)
@@ -206,6 +223,7 @@ class NumerrinPool(object):
                 "= Domain(" + name + ",2,2)\n"
         numcode += elementcode
         code = NumerrinCode(self.ph)
+
         code.parse_string(numcode)
         code.execute(1)
 
