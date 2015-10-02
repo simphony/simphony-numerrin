@@ -6,16 +6,15 @@ numerrin_wrapper module functionalities
 """
 
 import unittest
-import os
 
 from simphony.cuds.mesh import Mesh, Face, Point, Cell
 from simphony.core.cuba import CUBA
 from simphony.core.data_container import DataContainer
-from simphony.io.h5_cuds import H5CUDS
 
 from numerrin_wrapper.numerrin_wrapper import NumerrinWrapper
 from numerrin_wrapper.cuba_extension import CUBAExt
 from numerrin_wrapper.mesh_utils import create_quad_mesh
+
 
 class NumerrinWrapperTestCase(unittest.TestCase):
     """Test case for NumerrinWrapper class"""
@@ -153,7 +152,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
 
         wrapper = NumerrinWrapper()
         name = 'simplemesh'
-        corner_points=((0.0,0.0), (1.0,0.0), (1.0,1.0), (0.0,1.0))
+        corner_points = ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0))
         extrude_length = 1
         nex = 3
         ney = 3
@@ -188,7 +187,6 @@ class NumerrinWrapperTestCase(unittest.TestCase):
             old_vel += point.data[CUBA.VELOCITY]
             old_pres += point.data[CUBA.PRESSURE]
 
-
         wrapper.SP[CUBA.DENSITY] = 5.0
         wrapper.run()
 
@@ -199,12 +197,9 @@ class NumerrinWrapperTestCase(unittest.TestCase):
             new_vel += point.data[CUBA.VELOCITY]
             new_pres += point.data[CUBA.PRESSURE]
 
-
         self.assertNotAlmostEqual(old_vel, new_vel, 5)
         self.assertNotAlmostEqual(old_pres, new_pres, 5)
 
-
- 
 
 if __name__ == '__main__':
     unittest.main()

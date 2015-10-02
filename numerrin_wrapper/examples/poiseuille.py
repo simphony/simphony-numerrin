@@ -4,7 +4,6 @@
 
 from simphony.core.cuba import CUBA
 from simphony.engine import numerrin
-from simphony.io.h5_cuds import H5CUDS
 import os
 
 wrapper = numerrin.NumerrinWrapper()

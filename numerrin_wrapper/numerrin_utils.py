@@ -33,11 +33,11 @@ def cell_renode(tab):
         tab[7] = tmp
     return tab
 
+
 def generate_uuid():
     """Provides an uuid for the object
-    
+
     Provides san uuid as defined in the standard RFC 4122
     """
 
     return uuid.uuid4()
-

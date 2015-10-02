@@ -65,7 +65,7 @@ class NumerrinMesh(ABCMesh):
         self._numFaceLabelToUuid = maps[3]
         self._numCellLabelToUuid = maps[4]
         # point data
-        self.update_points(list(mesh.iter_points()))
+        self.update_points(mesh.iter_points())
 
     def get_point(self, uuid):
         """Returns a point with a given uuid.
