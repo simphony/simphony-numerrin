@@ -24,10 +24,11 @@ or::
     # build for in-place development
     python setup.py develop
 
-After installation the environment variable LD_LIBRARY_PATH should be set 
-to point to site-packages. This can be done sourcing in installation directory
+After installation ensure that:
+  - "libnumerrin4.so" is in the library search path (e.g. in LD_LIBRARY_PATH on linux)
+  - "numerrin.so" is in the pythons module search path. This can be accomplished by copying the "numerrin.so" file to under site-packages directory. In standard linux python installation this directory is "/usr/local/lib/python2.7/site-packages/"
 
-source .bashrc
+Library files "libnumerrin4.so" and "numerrin.so" are found under "numerrin-interface" -directory.
 
 
 License for Numerrin

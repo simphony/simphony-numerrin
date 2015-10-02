@@ -4,7 +4,6 @@
 
 from simphony.core.cuba import CUBA
 from simphony.engine import numerrin
-from simphony.io.h5_cuds import H5CUDS
 import os
 
 wrapper = numerrin.NumerrinWrapper()
@@ -31,12 +30,15 @@ wrapper.BC[CUBA.PRESSURE] = {'boundary0': 'zeroGradient',
                              'boundary2': 'zeroGradient',
                              'boundary3': 'empty'}
 
-mesh_file = H5CUDS.open(os.path.join(name, 'poiseuille.cuds'))
-mesh_from_file = mesh_file.get_mesh(name)
+corner_points=((0.0,0.0), (30.0,0.0), (30.0,5.0), (0.0,5.0))
+extrude_length = 0.1
+nex = 500
+ney = 20
+nez = 1
+numerrin.create_quad_mesh(name, wrapper, corner_points,
+                          extrude_length, nex, ney, nez)
 
-print "Mesh name ", mesh_from_file.name
-
-mesh_inside_wrapper = wrapper.add_mesh(mesh_from_file)
+mesh_inside_wrapper = wrapper.get_dataset(name)
 
 wrapper.run()
 print "Steps taken ", mesh_inside_wrapper._time

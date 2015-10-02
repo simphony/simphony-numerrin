@@ -57,7 +57,7 @@ class NumerrinPoolTestCase(unittest.TestCase):
                                     CUBA.PRESSURE: 4.0}))
         ]
 
-        puids = [self.mesh.add_point(point) for point in self.points]
+        puids = self.mesh.add_points(self.points)
 
         self.faces = [
             Face([puids[0], puids[3], puids[7], puids[4]],
@@ -77,7 +77,7 @@ class NumerrinPoolTestCase(unittest.TestCase):
 
         self.edge = Edge([puids[0], puids[3]])
 
-        [self.mesh.add_face(face) for face in self.faces]
+        self.mesh.add_faces(self.faces)
 
         self.cells = [
             Cell(puids)
@@ -85,7 +85,7 @@ class NumerrinPoolTestCase(unittest.TestCase):
 
         self.puids = puids
 
-        [self.mesh.add_cell(cell) for cell in self.cells]
+        self.mesh.add_cells(self.cells)
 
         self.variablename = self.mesh.name + "Velocity"
         self.variable = tuple([(0.0, 0.0, 0.0) for _ in self.points])
@@ -186,7 +186,8 @@ class NumerrinPoolTestCase(unittest.TestCase):
 
         pool = NumerrinPool()
         pool.import_mesh(self.mesh.name, self.mesh)
-        (smesh, mmap) = pool.export_mesh(self.mesh.name)
+        boundaries = [0, 1, 2, 3, 4, 5]
+        (smesh, mmap) = pool.export_mesh(self.mesh.name, boundaries)
         self.assertEqual(sum(1 for _ in smesh.iter_points()),
                          sum(1 for _ in self.mesh.iter_points()))
         self.assertEqual(sum(1 for _ in smesh.iter_faces()),
