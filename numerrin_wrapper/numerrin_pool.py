@@ -157,6 +157,23 @@ class NumerrinPool(object):
 
         indx = 0
         emap = {}
+
+        # create edges and faces if not exists
+        print "Mesh has edges: ", simphonyMesh.has_edges()
+        if not simphonyMesh.has_edges():
+            print "creating edges"
+            numerrin.createedges(self.ph, name) 
+        if not simphonyMesh.has_faces():
+            numerrin.createfaces(self.ph, name) 
+        # create neighbor lists
+        numerrin.createneighbors(self.ph, name, 1)
+        numerrin.createneighbors(self.ph, name, 2)
+        numerrin.createneighbors(self.ph, name, 3)
+        # create references between different levels
+        numerrin.createrefs(self.ph, name, 1, 2)
+        numerrin.createrefs(self.ph, name, 1, 3)
+        numerrin.createrefs(self.ph, name, 2, 3)
+
         for edge in simphonyMesh.iter_edges():
             pind = []
             for point in edge.points:

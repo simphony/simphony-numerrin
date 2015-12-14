@@ -22,7 +22,9 @@ class NumerrinWrapper(ABCModelingEngine):
 
     def __init__(self):
         super(NumerrinWrapper, self).__init__()
+        print "to initlocal"
         numerrin.initlocal("", "PYNUMERRIN_LICENSE", liccode)
+        print "to create pool"
         self.pool = NumerrinPool()
         self.code = NumerrinCode(self.pool.ph)
         self._meshes = {}
@@ -46,18 +48,39 @@ class NumerrinWrapper(ABCModelingEngine):
             self.pool.put_variable(numname[key], self.SP[key])
         # parse solver code
         if self._first:
+            f = open('code.num', 'w')
+            f.write(self.code.generate_code(self.CM,
+                                            self.SP,
+                                            self.BC,
+                                            self.CM_extensions))
+            f.close()
+            # initialize time
+            self.pool.put_variable('curTime', 0.0)
             self.code.parse_string(
+                self.code.generate_code(self.CM,
+                                        self.SP,
+                                        self.BC,
+                                        self.CM_extensions) +
                 self.code.generate_code(self.CM,
                                         self.SP,
                                         self.BC,
                                         self.CM_extensions))
             self._first = False
+        else:
+            self.code.parse_string(
+                self.code.generate_code(self.CM,
+                                        self.SP,
+                                        self.BC,
+                                        self.CM_extensions))
 
         # execute code
-        self.code.execute(1)
-        # save last iteration
+        number_of_cores = 1
+        if CUBAExt.NUMBER_OF_CORES in CM_extensions:
+            number_of_cores = CM_extensions[CUBAExt.NUMBER_OF_CORES]
+        self.code.execute(number_of_cores)
+        # save time
         for mesh in self.iter_datasets():
-            mesh._time = self.pool.get_variable('iteration')
+            mesh._time = self.pool.get_variable('curTime')
 
     def add_dataset(self, mesh):
         """Add a mesh to the Numerrin modeling engine.

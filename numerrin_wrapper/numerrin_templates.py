@@ -5,6 +5,7 @@ Templates for Numerrin solver -codes
 """
 
 from simphony.core.cuba import CUBA
+from .cuba_extension import CUBAExt
 
 liccode =\
     """
@@ -32,7 +33,37 @@ numname = {CUBA.RADIUS: "Radius",
            CUBA.VELOCITY: "Velocity",
            CUBA.PRESSURE: "Pressure"}
 
-functions = {'stabilizedLaminarNS3D':
+timeLoop = {'steadyStateLaminar':
+             """
+For iteration=1:1
+             """,
+                 'timeDependentLaminar':
+             """
+uo=u
+For iteration=1:NumberOfTimeSteps
+    curTime +=TimeStep
+    uoo=uo
+    uo=u
+    For id=0:2
+     u[id][[:]] += uo[id][[:]]
+     u[id][[:]] -= uoo[id][[:]]
+    EndFor
+
+             """
+}
+functionSpaces = {'steadyStateLaminar':
+             """
+V=Space(omega,\"Lagrange\",1)
+W=Space(omega,\"Lagrange\",1)
+             """,
+                 'timeDependentLaminar':
+             """
+V=Space(omega,\"Split\",2)
+W=Space(omega,\"Lagrange\",1)
+             """
+
+}
+functions = {'steadyStateLaminar':
              """
 Subroutine StabFF(u,rho,mu,tau,delta)
   hk=ElementSize
@@ -47,15 +78,48 @@ Subroutine StabFF(u,rho,mu,tau,delta)
   EndIf
 EndSubroutine
 
-             """}
+             """,
+             'timeDependentLaminar':
+             """
+Subroutine upwindv(v,rho,mu,nor,vf) result(vup)
+  vn:=v(.) dot nor
+  If vn > 0.0
+    For i=0:Size(vf)-1
+      If vf[i] > 0.1
+        j=i
+        Exit
+      EndIf
+    EndFor
+  Else
+    For i=0:Size(vf)-1
+      If vf[i] < -0.1
+        j=i
+        Exit
+      EndIf
+    EndFor
+  EndIf
+  alpha:=Norm(v(.))*ElementSize*rho/(2*mu)
+  If alpha > 1.0e-6
+    ksi=1/Tanh(alpha)-1/alpha
+  Else
+    ksi=0.0
+  EndIf
+  For i=0:Size(v)-1
+    vup[i]=ksi*BasisCoefficients(v[i](.))[j]+(1-ksi)*v[i](.)
+  EndFor
+EndSubroutine
 
-solverFrames = {'stabilizedLaminarNS3D':
+             """
+
+}
+
+solverFrames = {'steadyStateLaminar':
                 """
 dim=3
 A=Derivative(r,q)
   A=0.0
   r=0.0
-  Integral(omega,"Gauss",{integrationDegree})
+  Integral(omega,"Gauss",3)
     up=u(.)
     gup=Grad(u(.))
     pp=p(.)
@@ -110,4 +174,50 @@ A=Derivative(r,q)
 
   EndIntegral
 
-                """}
+                """,
+'timeDependentLaminar':
+             """
+    A=Derivative(r,q)
+    A=0.0
+    r=0.0
+    Integral(omega,"VlSrc2",1)
+      vf:=VolumeFunction
+      up0=BasisCoefficients(u[0](.)) dot vf
+      up1=BasisCoefficients(u[1](.)) dot vf
+      up2=BasisCoefficients(u[2](.)) dot vf
+      uop0=BasisCoefficients(uo[0](.)) dot vf
+      uop1=BasisCoefficients(uo[1](.)) dot vf
+      uop2=BasisCoefficients(uo[2](.)) dot vf
+      uoop0=BasisCoefficients(uoo[0](.)) dot vf
+      uoop1=BasisCoefficients(uoo[1](.)) dot vf
+      uoop2=BasisCoefficients(uoo[2](.)) dot vf
+      r[0] <- Density*0.5/TimeStep*(uoop0-4*uop0+3*up0)*vf
+      r[1] <- Density*0.5/TimeStep*(uoop1-4*uop1+3*up1)*vf
+      r[2] <- Density*0.5/TimeStep*(uoop2-4*uop2+3*up2)*vf
+    EndIntegral
+
+    Integral(omega,"VlFlx2",1)
+      nor:=NormalVector
+      vf:=VolumeFunction
+      gup=Grad(u(.))
+      
+      tau:=Viscosity*(gup+gup')
+      uu:=upwindv(u,Density,Viscosity,nor,vf)
+      r[0] <- ((Density*uu[0]*u(.)-tau[:,0]) dot nor+p(.)*nor[0])*vf
+      r[1] <- ((Density*uu[1]*u(.)-tau[:,1]) dot nor+p(.)*nor[1])*vf
+      r[2] <- ((Density*uu[2]*u(.)-tau[:,2]) dot nor+p(.)*nor[2])*vf
+    EndIntegral
+
+             """
+
+}
+
+def get_numerrin_solver(CM):
+    GE = CM[CUBAExt.GE]
+    if CUBAExt.LAMINAR_MODEL in GE:
+        #            solver = "steadyStateLaminar"
+        solver = "timeDependentLaminar"
+    else:
+        error_str = "GE does not define supported solver: GE = {}"
+        raise NotImplementedError(error_str.format(GE))
+    return solver

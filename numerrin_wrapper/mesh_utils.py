@@ -36,10 +36,10 @@ dvec[0:1]=0.0
 dvec[2]=%f
 Extrude(mesh2d,domains2d,dvec,%i,0,0.0,%s,domains)
 omega->domains[0]
-%sdomains0->domains[3]
+%sdomains0->domains[6]
 %sdomains1->domains[4]
-%sdomains2=Union(domains[1],domains[2])
-%sdomains3=Union(domains[5],domains[6])
+%sdomains2=Union(domains[3],domains[5])
+%sdomains3=Union(domains[1],domains[2])
 """ % (corner_points[0][0], corner_points[0][1],
        corner_points[1][0], corner_points[1][1],
        corner_points[2][0], corner_points[2][1],
@@ -48,6 +48,9 @@ omega->domains[0]
        name, name, name)
     code = NumerrinCode(numerrin_wrapper.pool.ph)
     code.parse_string(mesh_code)
+    f = open('mesh.num', 'w')
+    f.write(mesh_code)
+    f.close()
     code.execute(1)
     boundaries = [0, 1, 2, 3]
     (smesh, mmap) = numerrin_wrapper.pool.export_mesh(name, boundaries)

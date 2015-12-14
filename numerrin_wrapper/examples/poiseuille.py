@@ -6,6 +6,7 @@ from simphony.core.cuba import CUBA
 from simphony.engine import numerrin
 import os
 
+print "to wrapper initialization"
 wrapper = numerrin.NumerrinWrapper()
 CUBAExt = numerrin.CUBAExt
 
@@ -16,7 +17,7 @@ wrapper.CM[CUBA.NAME] = name
 wrapper.CM_extensions[CUBAExt.GE] = (CUBAExt.INCOMPRESSIBLE,
                                      CUBAExt.LAMINAR_MODEL)
 wrapper.SP[CUBA.TIME_STEP] = 1
-wrapper.SP[CUBA.NUMBER_OF_TIME_STEPS] = 1000
+wrapper.SP[CUBA.NUMBER_OF_TIME_STEPS] = 10
 wrapper.SP[CUBA.DENSITY] = 1.0
 wrapper.SP[CUBA.DYNAMIC_VISCOSITY] = 1.0
 
@@ -30,14 +31,15 @@ wrapper.BC[CUBA.PRESSURE] = {'boundary0': 'zeroGradient',
                              'boundary2': 'zeroGradient',
                              'boundary3': 'empty'}
 
-corner_points=((0.0,0.0), (30.0,0.0), (30.0,5.0), (0.0,5.0))
-extrude_length = 0.1
-nex = 500
-ney = 20
+corner_points=((0.0,0.0), (30.0e-3,0.0), (30.0e-3,5.0e-3), (0.0,5.0e-3))
+extrude_length = 0.1e-3
+nex = 30
+ney = 10
 nez = 1
+print "to creat quad mesh"
 numerrin.create_quad_mesh(name, wrapper, corner_points,
                           extrude_length, nex, ney, nez)
-
+print "mesh created"
 mesh_inside_wrapper = wrapper.get_dataset(name)
 
 wrapper.run()
