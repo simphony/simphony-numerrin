@@ -11,6 +11,7 @@ from .numerrin_pool import NumerrinPool
 from .numerrin_code import NumerrinCode
 from .numerrin_mesh import NumerrinMesh
 from .numerrin_templates import numname, liccode
+from .cuba_extension import CUBAExt
 
 import numerrin
 
@@ -49,18 +50,22 @@ class NumerrinWrapper(ABCModelingEngine):
         # parse solver code
         if self._first:
             f = open('code.num', 'w')
-            f.write(self.code.generate_code(self.CM,
-                                            self.SP,
-                                            self.BC,
-                                            self.CM_extensions))
+            f.write(self.code.generate_init_code(self.CM,
+                                                 self.SP,
+                                                 self.BC,
+                                                 self.CM_extensions) +
+                self.code.generate_code(self.CM,
+                                        self.SP,
+                                        self.BC,
+                                        self.CM_extensions))
             f.close()
             # initialize time
             self.pool.put_variable('curTime', 0.0)
             self.code.parse_string(
-                self.code.generate_code(self.CM,
-                                        self.SP,
-                                        self.BC,
-                                        self.CM_extensions) +
+                self.code.generate_init_code(self.CM,
+                                             self.SP,
+                                             self.BC,
+                                             self.CM_extensions) +
                 self.code.generate_code(self.CM,
                                         self.SP,
                                         self.BC,
@@ -75,8 +80,8 @@ class NumerrinWrapper(ABCModelingEngine):
 
         # execute code
         number_of_cores = 1
-        if CUBAExt.NUMBER_OF_CORES in CM_extensions:
-            number_of_cores = CM_extensions[CUBAExt.NUMBER_OF_CORES]
+        if CUBAExt.NUMBER_OF_CORES in self.CM_extensions:
+            number_of_cores = self.CM_extensions[CUBAExt.NUMBER_OF_CORES]
         self.code.execute(number_of_cores)
         # save time
         for mesh in self.iter_datasets():

@@ -42,6 +42,7 @@ class NumerrinPool(object):
 
         """
 
+
         simphonyMesh = Mesh(name)
         uuids = []
         mmap = {}
@@ -158,21 +159,6 @@ class NumerrinPool(object):
         indx = 0
         emap = {}
 
-        # create edges and faces if not exists
-        print "Mesh has edges: ", simphonyMesh.has_edges()
-        if not simphonyMesh.has_edges():
-            print "creating edges"
-            numerrin.createedges(self.ph, name) 
-        if not simphonyMesh.has_faces():
-            numerrin.createfaces(self.ph, name) 
-        # create neighbor lists
-        numerrin.createneighbors(self.ph, name, 1)
-        numerrin.createneighbors(self.ph, name, 2)
-        numerrin.createneighbors(self.ph, name, 3)
-        # create references between different levels
-        numerrin.createrefs(self.ph, name, 1, 2)
-        numerrin.createrefs(self.ph, name, 1, 3)
-        numerrin.createrefs(self.ph, name, 2, 3)
 
         for edge in simphonyMesh.iter_edges():
             pind = []
@@ -186,6 +172,7 @@ class NumerrinPool(object):
 
         indx = 0
         fmap = {}
+        boundary_faces = {}
         for face in simphonyMesh.iter_faces():
             pind = []
             for point in face.points:
@@ -198,10 +185,18 @@ class NumerrinPool(object):
             numerrin.setelement(self.ph, name, 2, indx, 0, tuple(pind))
             mmap[face.uid] = indx
             fmap[indx] = face.uid
+            if CUBA.LABEL in face.data:
+                blabel = face.data[CUBA.LABEL]
+                bname = name + "domains" + str(blabel)
+                if not bname in boundary_faces:
+                    boundary_faces[bname] = []
+                boundary_faces[bname].append(indx)
+             
             indx = indx+1
 
         indx = 0
         cmap = {}
+        cell_ids = []
         for cell in simphonyMesh.iter_cells():
             pind = []
             for point in cell.points:
@@ -216,33 +211,34 @@ class NumerrinPool(object):
             numerrin.setelement(self.ph, name, 3, indx, 0, tuple(pind))
             mmap[cell.uid] = indx
             cmap[indx] = cell.uid
+            cell_ids.append(indx)
             indx = indx+1
 
-        # add domains
-        numcode = "omega = Domain(" + name + ")\n"
-        boundaries = []
-        elementcode = ""
-        for face in simphonyMesh.iter_faces():
-            if face.data:
-                if CUBA.LABEL in face.data:
-                    fuid = str(mmap[face.uid])
-                    blabel = face.data[CUBA.LABEL]
-                    if blabel not in boundaries:
-                        boundaries.append(blabel)
-                    elementcode += "AddElement(" + name +\
-                                   "domains" + str(blabel) + "," +\
-                                   fuid + "," + fuid + ")\n" +\
-                                   "Face" + fuid + name +\
-                                   "=" + str(blabel) + "\n"
 
-        for boundary in boundaries:
-            numcode += name + "domains" + str(boundary) +\
-                "= Domain(" + name + ",2,2)\n"
-        numcode += elementcode
-        code = NumerrinCode(self.ph)
+        # create edges and faces if not exists
+        print "Mesh has edges: ", simphonyMesh.has_edges()
+        if not simphonyMesh.has_edges():
+            print "creating edges"
+            numerrin.createedges(self.ph, name) 
+        if not simphonyMesh.has_faces():
+            numerrin.createfaces(self.ph, name) 
+        # create neighbor lists
+        numerrin.createneighbors(self.ph, name, 1)
+        numerrin.createneighbors(self.ph, name, 2)
+        numerrin.createneighbors(self.ph, name, 3)
+        # create references between different levels
+        numerrin.createrefs(self.ph, name, 2, 1)
+        numerrin.createrefs(self.ph, name, 3, 1)
+        numerrin.createrefs(self.ph, name, 3, 2)
 
-        code.parse_string(numcode)
-        code.execute(1)
+
+        # add inner domain
+        numerrin.createdomain(self.ph, "omega", name, 3, tuple(cell_ids))
+        # add boundary domains
+        for boundary_name in boundary_faces:
+            numerrin.createboundary(self.ph, boundary_name, name,
+                                    2, tuple(boundary_faces[boundary_name]))
+            
 
         return [mmap, pmap, emap, fmap, cmap]
 
