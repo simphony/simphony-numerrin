@@ -1,10 +1,12 @@
 from simphony.core.cuba import CUBA
 
-from .numerrin_templates import solverFrames, functions
+from .cuba_extension import CUBAExt
+
+from .numerrin_templates import solverFrames, functions, associations
 from .numerrin_templates import functionSpaces, get_numerrin_solver
 from .numerrin_templates import timeLoop
-from .numerrin_templates import numname
-
+from .numerrin_templates import numname, to_numerrin_expression
+from .numerrin_templates import multiphase_solvers
 import numerrin
 
 
@@ -59,7 +61,7 @@ class NumerrinCode(object):
         """
         numerrin.clearcode(self.ch)
 
-    def generate_init_code(self, CM, SP, BC, CMExt):
+    def generate_init_code(self, CM, SP, SPExt, BC, CMExt):
         """ generate Numerrin code for function domain and space definitions
             according to user settings
 
@@ -69,6 +71,8 @@ class NumerrinCode(object):
             Computational Method
         SP : DataContainer
             System Parameters
+        SPExt : dictionary
+            extension to SP
         BC : DataContainer
             Boundary Conditions
         CMExt : dictionary
@@ -86,38 +90,41 @@ class NumerrinCode(object):
         code = ""
         domaincode = ""
 
-        nonFixedBoundaryTypes = ["zeroGradient",
-                                 "fixedFluxPressure",
-                                 "empty"]
         pressureBCs = BC[CUBA.PRESSURE]
         velocityBCs = BC[CUBA.VELOCITY]
+        boundaries = []
         for boundary in pressureBCs:
-            if pressureBCs[boundary] not in nonFixedBoundaryTypes:
-                bi = int(boundary.replace('boundary', ''))
-                domaincode += boundary + "->" + name + "domains" +\
-                    str(bi) + "\n"
-
+            if boundary not in boundaries:
+                boundaries.append(boundary)
         for boundary in velocityBCs:
-            if velocityBCs[boundary] not in nonFixedBoundaryTypes:
-                bi = int(boundary.replace('boundary', ''))
-                domaincode += boundary + "->" + name + "domains" +\
-                    str(bi) + "\n"
-
-        # define associations
-        assoccode = "u[0:2] in V\n"
-        assoccode += "p in W\n"
-        assoccode += "q[0:2]->u\n"
-        assoccode += "q[3]->p\n"
-        assoccode += "r:=q\n"
+            if boundary not in boundaries:
+                boundaries.append(boundary)
+        for boundary in boundaries:
+            bi = int(boundary.replace('boundary', ''))
+            domaincode += boundary + "->" + name + "domains" +\
+                str(bi) + "\n"
 
         # functions
         code += functions[solver]
         # domains
+        code += "? \"domain definition\"\n"
         code += domaincode
+        code += "Save(poiseuille)\n"
+        code += "Save(omega)\n"
+        code += "Save(poiseuilledomains0)\n"
         # spaces
+        code += "? \"function spaces\"\n"
         code += functionSpaces[solver]
         # associations
-        code += assoccode
+        print solver
+        if solver in multiphase_solvers:
+            code += associations[solver].format(
+                phase1_name=SPExt[CUBAExt.PHASE_LIST][0],
+                phase2_name=SPExt[CUBAExt.PHASE_LIST][1]) 
+        else:
+            code += associations[solver]
+
+        code += "? \"associations done\"\n"
 
         return code
 
@@ -162,7 +169,7 @@ class NumerrinCode(object):
                 if pressureBCs[boundary] not in nonFixedBoundaryTypes:
                     bccode += "Constraint(" + boundary + ",W)\n"
                     bccode += " r[3] <- p(.) - " +\
-                        str(pressureBCs[boundary]) +\
+                        to_numerrin_expression(pressureBCs[boundary]) +\
                         "\n"
                     bccode += "EndConstraint\n"
 
@@ -170,12 +177,12 @@ class NumerrinCode(object):
                 if boundary not in boundaries:
                     boundaries.append(boundary)
                 if velocityBCs[boundary] not in nonFixedBoundaryTypes:
-                    velo = velocityBCs[boundary]
+                    velo = to_numerrin_expression(velocityBCs[boundary])
                     bccode += "Constraint(" + boundary + ",V)\n"
                     bccode += " up=u(.)\n"
-                    bccode += " r[0] <- up[0] - " + str(velo[0]) + "\n"
-                    bccode += " r[1] <- up[1] - " + str(velo[1]) + "\n"
-                    bccode += " r[2] <- up[2] - " + str(velo[2]) + "\n"
+                    bccode += " r[0] <- up[0] - " + velo[0] + "\n"
+                    bccode += " r[1] <- up[1] - " + velo[1] + "\n"
+                    bccode += " r[2] <- up[2] - " + velo[2] + "\n"
                     bccode += "EndConstraint\n"
 
         elif solver == "timeDependentLaminar":
@@ -198,27 +205,82 @@ class NumerrinCode(object):
                 if boundary not in boundaries:
                     boundaries.append(boundary)
                 if velocityBCs[boundary] not in nonFixedBoundaryTypes:
-                    velo = velocityBCs[boundary]
+                    velo = to_numerrin_expression(velocityBCs[boundary])
                     bccode += "Constraint(" + boundary + ",V)\n"
                     bccode += " up=u(.)\n"
-                    bccode += " r[0] <- up[0] - " + str(velo[0]) + "\n"
-                    bccode += " r[1] <- up[1] - " + str(velo[1]) + "\n"
-                    bccode += " r[2] <- up[2] - " + str(velo[2]) + "\n"
+                    bccode += " r[0] <- up[0] - " + velo[0] + "\n"
+                    bccode += " r[1] <- up[1] - " + velo[1] + "\n"
+                    bccode += " r[2] <- up[2] - " + velo[2] + "\n"
                     bccode += "EndConstraint\n"
-            # integrate flux over boundaries
+                    
+        elif solver=="VOFLaminar":
+            for boundary in pressureBCs:
+                if boundary not in boundaries:
+                    boundaries.append(boundary)
+                if pressureBCs[boundary] not in nonFixedBoundaryTypes:
+                    # integrate momentum on outflow boundaries
+                    # (where pressure is fixed)
+                    bccode += "Integral(" + boundary + ",\"VlFlx2\",1)\n"
+                    bccode += "nor:=NormalVector\n"
+                    bccode += "vf:=VolumeFunction\n"
+                    bccode += "rhoEff=phi(.)*rho2+(1-phi(.))*rho1\n"
+                    bccode += "up:=u(.)\n"
+                    bccode += "If up dot nor > 0.0\n"
+                    bccode += "r[0] <- sc*(rhoEff*u[0](.)*u(.) dot nor)*vf\n"
+                    bccode += "r[1] <- sc*(rhoEff*u[1](.)*u(.) dot nor)*vf\n"
+                    bccode += "r[2] <- sc*(rhoEff*u[2](.)*u(.) dot nor)*vf\n"
+                    bccode += "EndIf\n"
+                    bccode += "EndIntegral\n"
+            for boundary in velocityBCs:
+                if boundary not in boundaries:
+                    boundaries.append(boundary)
+                if velocityBCs[boundary] not in nonFixedBoundaryTypes:
+                    velo = to_numerrin_expression(velocityBCs[boundary])
+                    bccode += "Constraint(" + boundary + ",V)\n"
+                    bccode += " up=u(.)\n"
+                    bccode += " r[0] <- up[0] - " + velo[0] + "\n"
+                    bccode += " r[1] <- up[1] - " + velo[1] + "\n"
+                    bccode += " r[2] <- up[2] - " + velo[2] + "\n"
+                    bccode += "EndConstraint\n"
+
+
+            volumeFractionBCs = BC[CUBA.VOLUME_FRACTION]
+            for boundary in volumeFractionBCs:
+                if boundary not in boundaries:
+                    boundaries.append(boundary)
+                if volumeFractionBCs[boundary] not in nonFixedBoundaryTypes:
+                    bccode += "Constraint(" + boundary + ",W)\n"
+                    bccode += " r[3] <- phi(.) - " +\
+                            to_numerrin_expression(
+                                volumeFractionBCs[boundary]) + "\n"
+                    bccode += "EndConstraint\n"
+                
+        # integrate flux over boundaries
+        if solver=="VOFLaminar":
+            for boundary in boundaries:
+                bccode += "Integral(" + boundary + ",\"VlFlx1\",3)\n"
+                bccode += "nor:=NormalVector\n"
+                bccode += "vf:=VolumeFunction\n"
+                bccode += "r[3] <- sc*phi(.)*(u(.) dot nor)*vf\n"
+                bccode += "r[4] <- sc*u(.) dot nor*vf\n"
+                bccode += "EndIntegral\n"
+        else:
             for boundary in boundaries:
                 bccode += "Integral(" + boundary + ",\"VlFlx1\",3)\n"
                 bccode += "nor:=NormalVector\n"
                 bccode += "vf:=VolumeFunction\n"
                 bccode += "r[3] <- u(.) dot nor*vf\n"
                 bccode += "EndIntegral\n"
-
+                
         # time loop and initializations
+        code += "? \"Number of time steps \",NumberOfTimeSteps\n"
         code += timeLoop[solver]
+        code += "? \"Time: \", curTime\n"
         # main loop
-        code += "NumberOfInnerSteps=2\n"
+        code += "NumberOfInnerSteps=10\n"
         code += "normi0=0.0\n"
         code += "relax=0.1\n"
+        code += "reduc=1.0e-4\n"
 
         code += "For inIt=1:NumberOfInnerSteps\n"
         # solver frame
@@ -226,10 +288,14 @@ class NumerrinCode(object):
         # boundary conditions
         code += bccode
         # linear solver
-        code += "? inIt, \": \", Norm(r)\n"
-#        code += "If Norm(r) < 1.0e-6\n"
-#        code += "Exit\n"
-#        code += "EndIf\n"
+        code += "normi =  Norm(r)\n"
+        code += "If inIt == 1\n"
+        code += "  eps=reduc*normi\n"
+        code += "EndIf\n"
+        code += "? inIt, \":\", normi\n"
+        code += "If (normi < 1.0e-8) || (~(normi > eps) && inIt > 2)\n"
+        code += " Exit\n"
+        code += "EndIf\n"
         code += "q -= relax*LU(A,r)\n"
         code += "if normi < normi0\n"
         code += " relax = 1.0\n"
@@ -238,8 +304,8 @@ class NumerrinCode(object):
         # loop end
         code += "EndFor\n"
         # time loop end
-        code += "? \"Time step: \", curTime\n"
         code += "EndFor\n"
+        code += "WriteCGNS(\"tulos.cgns\") poiseuille,u,p\n"
         code += name + numname[CUBA.VELOCITY] + "=u \n"
         code += name + numname[CUBA.PRESSURE] + "=p\n"
         return code
