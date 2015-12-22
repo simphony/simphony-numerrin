@@ -5,7 +5,7 @@ and modify a mesh and related data
 
 """
 from simphony.cuds.abc_mesh import ABCMesh
-from simphony.cuds.mesh import Face, Point, Cell
+from simphony.cuds.mesh import Point, Edge, Face, Cell
 from simphony.core.cuba import CUBA
 from simphony.core.cuds_item import CUDSItem
 
@@ -135,8 +135,15 @@ class NumerrinMesh(ABCMesh):
             If the edge identified by uuid was not found
 
         """
-        message = "Edges are not supported yet in Numerrin engine"
-        raise NotImplementedError(message)
+
+        try:
+            pointLabels = self.pool.get_edge_points(self.name,
+                                                    self._uuidToNumLabel[uuid])
+            puids = [self._numPointLabelToUuid[lbl] for lbl in pointLabels]
+            return Edge(puids, uuid)
+        except KeyError:
+            error_str = "Trying to get an non-existing edge with uuid: {}"
+            raise ValueError(error_str.format(uuid))
 
     def get_face(self, uuid):
         """Returns a face with a given uuid.
@@ -175,7 +182,7 @@ class NumerrinMesh(ABCMesh):
                 pass
             return face
         except KeyError:
-            error_str = "Trying to get an non-existing edge with uuid: {}"
+            error_str = "Trying to get an non-existing face with uuid: {}"
             raise ValueError(error_str.format(uuid))
 
     def get_cell(self, uuid):
@@ -256,7 +263,7 @@ class NumerrinMesh(ABCMesh):
                     "Trying to update a non-existing point with uuid: "\
                     + str(point.uid)
                 raise KeyError(error_str)
-
+            label = self._uuidToNumLabel[point.uid]
             for dkey in numvariables:
                 dataName = numname[dkey]
                 vname = self.name + dataName
@@ -264,22 +271,26 @@ class NumerrinMesh(ABCMesh):
                     try:
                         if vname not in vdata:
                             vdata[vname] = list(self.pool.get_variable(vname))
-                        vdata[vname][self._uuidToNumLabel[point.uid]] =\
-                            point.data[dkey]
+                        var = point.data[dkey]
+                        if type(var) is list:
+                            vdata[vname][label] = tuple(point.data[dkey])
+                        else:
+                            vdata[vname][label] = point.data[dkey]
                     except:
                         # create variable if not in pool
                         var = point.data[dkey]
-                        if type(var) is tuple:
+                        if type(var) is tuple or type(var) is list:
                             vdata[vname] =\
                                 list([(0, 0, 0) for _ in self.iter_points()])
+                            vdata[vname][label] = tuple(point.data[dkey])
                         else:
                             vdata[vname] =\
                                 list([0 for _ in self.iter_points()])
-                        vdata[vname][self._uuidToNumLabel[point.uid]] =\
-                            point.data[dkey]
+                            vdata[vname][label] = point.data[dkey]
                         self.pool.put_variable(vname, tuple(vdata[vname]))
 
         for vname in vdata:
+            print tuple(vdata[vname])
             self.pool.modify_variable(vname, tuple(vdata[vname]))
 
     def update_edges(self, edges):

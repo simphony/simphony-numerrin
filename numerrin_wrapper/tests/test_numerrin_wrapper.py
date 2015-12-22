@@ -156,7 +156,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
         extrude_length = 1
         nex = 3
         ney = 3
-        nez = 3
+        nez = 1
         create_quad_mesh(name, wrapper, corner_points,
                          extrude_length, nex, ney, nez)
 
@@ -164,7 +164,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
         wrapper.CM_extensions[CUBAExt.GE] = (CUBAExt.INCOMPRESSIBLE,
                                              CUBAExt.LAMINAR_MODEL)
         wrapper.SP[CUBA.TIME_STEP] = 1
-        wrapper.SP[CUBA.NUMBER_OF_TIME_STEPS] = 10
+        wrapper.SP[CUBA.NUMBER_OF_TIME_STEPS] = 1
         wrapper.SP[CUBA.DENSITY] = 1.0
         wrapper.SP[CUBA.DYNAMIC_VISCOSITY] = 1.0
         wrapper.BC[CUBA.VELOCITY] = {'boundary0': (0.1, 0, 0),
@@ -188,6 +188,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
             old_pres += point.data[CUBA.PRESSURE]
 
         wrapper.SP[CUBA.DENSITY] = 5.0
+
         wrapper.run()
 
         # sum data pointwise

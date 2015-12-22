@@ -62,6 +62,7 @@ class NumerrinMeshTestCase(unittest.TestCase):
         ]
 
         puids = self.mesh.add_points(self.points)
+        self.puids = puids
 
         self.faces = [
             Face([puids[0], puids[3], puids[7], puids[4]],
@@ -79,7 +80,6 @@ class NumerrinMeshTestCase(unittest.TestCase):
 
         ]
 
-        self.edges = [Edge([puids[0], puids[3]])]
 
         self.mesh.add_faces(self.faces)
 
@@ -111,8 +111,9 @@ class NumerrinMeshTestCase(unittest.TestCase):
         """
 
         num_mesh = NumerrinMesh('test_mesh', self.mesh, self.pool)
-        with self.assertRaises(NotImplementedError):
-            num_mesh.get_edge(self.edges[0])
+        uid = num_mesh._numEdgeLabelToUuid[0]
+        edge = num_mesh.get_edge(uid)
+        self.assertEqual(edge.uid, uid)
 
     def test_get_face(self):
         """Test get_face method
@@ -150,7 +151,7 @@ class NumerrinMeshTestCase(unittest.TestCase):
 
         num_mesh = NumerrinMesh('test_mesh', self.mesh, self.pool)
         with self.assertRaises(NotImplementedError):
-            num_mesh.add_edges(self.edges)
+            num_mesh.add_edges([Edge([self.puids[0], self.puids[3]])])
 
     def test_add_faces(self):
         """Test add_faces method
@@ -190,7 +191,7 @@ class NumerrinMeshTestCase(unittest.TestCase):
 
         num_mesh = NumerrinMesh('test_mesh', self.mesh, self.pool)
         with self.assertRaises(NotImplementedError):
-            num_mesh.update_edges(self.edges)
+            num_mesh.update_edges([Edge([self.puids, self.puids[3]])])
 
     def test_update_faces(self):
         """Test update_faces method
@@ -207,7 +208,8 @@ class NumerrinMeshTestCase(unittest.TestCase):
         """
 
         num_mesh = NumerrinMesh('test_mesh', self.mesh, self.pool)
-        self.assertEqual(sum(1 for _ in num_mesh.iter_edges()), 0)
+        self.assertEqual(sum(1 for _ in num_mesh.iter_edges()),
+                         num_mesh.count_of(CUDSItem.EDGE))
 
     def test_iter_faces(self):
         """Test iter_faces method
@@ -261,8 +263,7 @@ class NumerrinMeshTestCase(unittest.TestCase):
                          self.mesh.count_of(item_type))
 
         item_type = CUDSItem.EDGE
-        self.assertEqual(num_mesh.count_of(item_type),
-                         self.mesh.count_of(item_type))
+        self.assertEqual(num_mesh.count_of(item_type), 12)
 
         item_type = CUDSItem.FACE
         self.assertEqual(num_mesh.count_of(item_type),

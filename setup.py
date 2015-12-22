@@ -34,5 +34,4 @@ setup(
     install_requires=['simphony >= 0.2.0'],
     entry_points={
         'simphony.engine': ['numerrin = numerrin_wrapper']}
-
 )

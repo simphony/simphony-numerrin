@@ -115,7 +115,7 @@ class NumerrinCodeTestCase(unittest.TestCase):
         self.code.execute(1)
 
     def test_generate_code(self):
-        """Test generate_code method
+        """Test generate_init_code and generate_code method
 
         """
         CM = DataContainer()
@@ -136,7 +136,8 @@ class NumerrinCodeTestCase(unittest.TestCase):
         for key in SP:
             self.pool.put_variable(numname[key], SP[key])
 
-        codestring = self.code.generate_code(CM, SP, BC, CMExt)
+        codestring = self.code.generate_init_code(CM, SP, BC, CMExt) +\
+                     self.code.generate_code(CM, SP, BC, CMExt)
 
         self.code.parse_string(codestring)
 

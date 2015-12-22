@@ -23,9 +23,7 @@ class NumerrinWrapper(ABCModelingEngine):
 
     def __init__(self):
         super(NumerrinWrapper, self).__init__()
-        print "to initlocal"
         numerrin.initlocal("", "PYNUMERRIN_LICENSE", liccode)
-        print "to create pool"
         self.pool = NumerrinPool()
         self.code = NumerrinCode(self.pool.ph)
         self._meshes = {}
@@ -33,6 +31,7 @@ class NumerrinWrapper(ABCModelingEngine):
         self.SP = DataContainer()
         self.BC = DataContainer()
         self.CM_extensions = {}
+        self.SP_extensions = {}
         self._first = True
 
     def run(self):
@@ -46,24 +45,33 @@ class NumerrinWrapper(ABCModelingEngine):
 
         # put SP parameters to pool
         for key in self.SP:
-            self.pool.put_variable(numname[key], self.SP[key])
+            print "a ",numname[key]
+            print "b ",self.SP[key]
+            self.pool.put_parameter(numname[key], self.SP[key])
+        for key in self.SP_extensions:
+            print "key ",key
+            print "a ",numname[key]
+            print "b ",self.SP_extensions[key]
+            self.pool.put_parameter(numname[key], self.SP_extensions[key])
         # parse solver code
         if self._first:
             f = open('code.num', 'w')
             f.write(self.code.generate_init_code(self.CM,
                                                  self.SP,
+                                                 self.SP_extensions,
                                                  self.BC,
                                                  self.CM_extensions) +
-                self.code.generate_code(self.CM,
-                                        self.SP,
-                                        self.BC,
-                                        self.CM_extensions))
+                    self.code.generate_code(self.CM,
+                                            self.SP,
+                                            self.BC,
+                                            self.CM_extensions))
             f.close()
             # initialize time
             self.pool.put_variable('curTime', 0.0)
             self.code.parse_string(
                 self.code.generate_init_code(self.CM,
                                              self.SP,
+                                             self.SP_extensions,
                                              self.BC,
                                              self.CM_extensions) +
                 self.code.generate_code(self.CM,
@@ -72,6 +80,7 @@ class NumerrinWrapper(ABCModelingEngine):
                                         self.CM_extensions))
             self._first = False
         else:
+            self.code.clear()
             self.code.parse_string(
                 self.code.generate_code(self.CM,
                                         self.SP,
