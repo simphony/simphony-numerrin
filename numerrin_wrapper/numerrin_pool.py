@@ -345,16 +345,12 @@ class NumerrinPool(object):
             dictionary of tuple of variable values or tuple of
             tuples if vector valued variable
         """
-        print par, " ", isinstance(par, dict)
         if isinstance(par, dict):
             for pari in par:
-                print pari
                 pool_name = ''.join(pari) + name
-                print pool_name
                 numerrin.putvariable(self.ph, pool_name, par[pari])
         else:
             numerrin.putvariable(self.ph, name, par)
-
 
     def put_variable(self, name, var):
         """ put variable to Numerrin pool

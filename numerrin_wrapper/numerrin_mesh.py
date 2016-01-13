@@ -290,7 +290,6 @@ class NumerrinMesh(ABCMesh):
                         self.pool.put_variable(vname, tuple(vdata[vname]))
 
         for vname in vdata:
-            print tuple(vdata[vname])
             self.pool.modify_variable(vname, tuple(vdata[vname]))
 
     def update_edges(self, edges):

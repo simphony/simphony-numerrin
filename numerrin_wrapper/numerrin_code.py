@@ -6,7 +6,8 @@ from .numerrin_templates import solverFrames, functions, associations
 from .numerrin_templates import functionSpaces, get_numerrin_solver
 from .numerrin_templates import timeLoop
 from .numerrin_templates import numname, to_numerrin_expression
-from .numerrin_templates import multiphase_solvers
+from .numerrin_templates import multiphase_solvers, external_body_force_model
+from .numerrin_templates import mixture_model, relative_velocity_code
 import numerrin
 
 
@@ -107,28 +108,25 @@ class NumerrinCode(object):
         # functions
         code += functions[solver]
         # domains
-        code += "? \"domain definition\"\n"
         code += domaincode
-        code += "Save(poiseuille)\n"
-        code += "Save(omega)\n"
-        code += "Save(poiseuilledomains0)\n"
+#        code += "Save(poiseuille)\n"
+#        code += "Save(omega)\n"
+#        code += "Save(poiseuilledomains0)\n"
         # spaces
-        code += "? \"function spaces\"\n"
         code += functionSpaces[solver]
         # associations
-        print solver
         if solver in multiphase_solvers:
             code += associations[solver].format(
                 phase1_name=SPExt[CUBAExt.PHASE_LIST][0],
-                phase2_name=SPExt[CUBAExt.PHASE_LIST][1]) 
+                phase2_name=SPExt[CUBAExt.PHASE_LIST][1])
         else:
             code += associations[solver]
 
-        code += "? \"associations done\"\n"
+        code += external_body_force_model(SPExt)
 
         return code
 
-    def generate_code(self, CM, SP, BC, CMExt):
+    def generate_code(self, CM, SP, SPExt, BC, CMExt):
         """ generate Numerrin code according to user settings
 
         Parameters
@@ -137,6 +135,8 @@ class NumerrinCode(object):
             Computational Method
         SP : DataContainer
             System Parameters
+        SPExt : dictionary
+            extension to SP
         BC : DataContainer
             Boundary Conditions
         CMExt : dictionary
@@ -159,8 +159,7 @@ class NumerrinCode(object):
         velocityBCs = BC[CUBA.VELOCITY]
 
         nonFixedBoundaryTypes = ["zeroGradient",
-                                 "fixedFluxPressure",
-                                 "empty"]
+                                 "empty", "slip"]
         boundaries = []
         if solver == "steadyStateLaminar":
             for boundary in pressureBCs:
@@ -169,7 +168,7 @@ class NumerrinCode(object):
                 if pressureBCs[boundary] not in nonFixedBoundaryTypes:
                     bccode += "Constraint(" + boundary + ",W)\n"
                     bccode += " r[3] <- p(.) - " +\
-                        to_numerrin_expression(pressureBCs[boundary]) +\
+                        to_numerrin_expression(pressureBCs[boundary][1]) +\
                         "\n"
                     bccode += "EndConstraint\n"
 
@@ -177,7 +176,7 @@ class NumerrinCode(object):
                 if boundary not in boundaries:
                     boundaries.append(boundary)
                 if velocityBCs[boundary] not in nonFixedBoundaryTypes:
-                    velo = to_numerrin_expression(velocityBCs[boundary])
+                    velo = to_numerrin_expression(velocityBCs[boundary][1])
                     bccode += "Constraint(" + boundary + ",V)\n"
                     bccode += " up=u(.)\n"
                     bccode += " r[0] <- up[0] - " + velo[0] + "\n"
@@ -205,16 +204,17 @@ class NumerrinCode(object):
                 if boundary not in boundaries:
                     boundaries.append(boundary)
                 if velocityBCs[boundary] not in nonFixedBoundaryTypes:
-                    velo = to_numerrin_expression(velocityBCs[boundary])
+                    velo = to_numerrin_expression(velocityBCs[boundary][1])
                     bccode += "Constraint(" + boundary + ",V)\n"
                     bccode += " up=u(.)\n"
                     bccode += " r[0] <- up[0] - " + velo[0] + "\n"
                     bccode += " r[1] <- up[1] - " + velo[1] + "\n"
                     bccode += " r[2] <- up[2] - " + velo[2] + "\n"
                     bccode += "EndConstraint\n"
-                    
-        elif solver=="VOFLaminar":
+
+        elif solver in multiphase_solvers:
             for boundary in pressureBCs:
+                bccode += "? \"Mom fluxes\"\n"
                 if boundary not in boundaries:
                     boundaries.append(boundary)
                 if pressureBCs[boundary] not in nonFixedBoundaryTypes:
@@ -235,7 +235,7 @@ class NumerrinCode(object):
                 if boundary not in boundaries:
                     boundaries.append(boundary)
                 if velocityBCs[boundary] not in nonFixedBoundaryTypes:
-                    velo = to_numerrin_expression(velocityBCs[boundary])
+                    velo = to_numerrin_expression(velocityBCs[boundary][1])
                     bccode += "Constraint(" + boundary + ",V)\n"
                     bccode += " up=u(.)\n"
                     bccode += " r[0] <- up[0] - " + velo[0] + "\n"
@@ -243,25 +243,39 @@ class NumerrinCode(object):
                     bccode += " r[2] <- up[2] - " + velo[2] + "\n"
                     bccode += "EndConstraint\n"
 
-
             volumeFractionBCs = BC[CUBA.VOLUME_FRACTION]
+
             for boundary in volumeFractionBCs:
                 if boundary not in boundaries:
                     boundaries.append(boundary)
                 if volumeFractionBCs[boundary] not in nonFixedBoundaryTypes:
                     bccode += "Constraint(" + boundary + ",W)\n"
                     bccode += " r[3] <- phi(.) - " +\
-                            to_numerrin_expression(
-                                volumeFractionBCs[boundary]) + "\n"
+                        to_numerrin_expression(volumeFractionBCs[boundary][1])\
+                        + "\n"
                     bccode += "EndConstraint\n"
-                
+
         # integrate flux over boundaries
-        if solver=="VOFLaminar":
+        if solver == "VOFLaminar":
+            bccode += "? \"Boundary fluxes\"\n"
             for boundary in boundaries:
                 bccode += "Integral(" + boundary + ",\"VlFlx1\",3)\n"
                 bccode += "nor:=NormalVector\n"
                 bccode += "vf:=VolumeFunction\n"
                 bccode += "r[3] <- sc*phi(.)*(u(.) dot nor)*vf\n"
+                bccode += "r[4] <- sc*u(.) dot nor*vf\n"
+                bccode += "EndIntegral\n"
+        elif solver == "mixtureModelLaminar":
+            r_code = relative_velocity_code(SPExt)
+            for boundary in boundaries:
+                bccode += "Integral(" + boundary + ",\"VlFlx1\",3)\n"
+                bccode += "nor:=NormalVector\n"
+                bccode += "vf:=VolumeFunction\n"
+                bccode += "rhom=phi(.)*rho2+(1-phi(.))*rho1\n"
+                bccode += "udm=rho1/rhom*{}\n".format(r_code)
+                bccode += "cd=phi(.)*rho2/rhom\n"
+                bccode += "r[3] <- sc*phi(.)*((u(.)"
+                bccode += "+ (1-cd)*udm) dot nor)*vf\n"
                 bccode += "r[4] <- sc*u(.) dot nor*vf\n"
                 bccode += "EndIntegral\n"
         else:
@@ -271,9 +285,15 @@ class NumerrinCode(object):
                 bccode += "vf:=VolumeFunction\n"
                 bccode += "r[3] <- u(.) dot nor*vf\n"
                 bccode += "EndIntegral\n"
-                
+
         # time loop and initializations
-        code += "? \"Number of time steps \",NumberOfTimeSteps\n"
+#        code += "? \"waterDensity\", waterDensity\n"                
+#        code += "? \"airDensity\", airDensity\n"                
+#        code += "? \"waterViscosity\", waterViscosity\n"                
+#        code += "? \"airViscosity\", airViscosity\n"                
+#        code += "? \"waterairSurfaceTension\","
+#        code += "waterairSurfaceTension\n"                
+#        code += "? \"TimeStep\", TimeStep\n"                
         code += timeLoop[solver]
         code += "? \"Time: \", curTime\n"
         # main loop
@@ -284,7 +304,10 @@ class NumerrinCode(object):
 
         code += "For inIt=1:NumberOfInnerSteps\n"
         # solver frame
-        code += solverFrames[solver]
+        if solver == "mixtureModelLaminar":
+            code += mixture_model(SPExt)
+        else:
+            code += solverFrames[solver]
         # boundary conditions
         code += bccode
         # linear solver
@@ -293,10 +316,12 @@ class NumerrinCode(object):
         code += "  eps=reduc*normi\n"
         code += "EndIf\n"
         code += "? inIt, \":\", normi\n"
-        code += "If (normi < 1.0e-8) || (~(normi > eps) && inIt > 2)\n"
+        code += "If (normi < 1.0e-8) || (~(normi > eps) && inIt >= 2)\n"
         code += " Exit\n"
         code += "EndIf\n"
+        code += "? \"Start linear system solving\"\n"
         code += "q -= relax*LU(A,r)\n"
+        code += "? \"End linear system solving\"\n"
         code += "if normi < normi0\n"
         code += " relax = 1.0\n"
         code += "endif\n"
@@ -305,7 +330,7 @@ class NumerrinCode(object):
         code += "EndFor\n"
         # time loop end
         code += "EndFor\n"
-        code += "WriteCGNS(\"tulos.cgns\") poiseuille,u,p\n"
+#        code += "WriteCGNS(\"tulos.cgns\") poiseuille,u,p\n"
         code += name + numname[CUBA.VELOCITY] + "=u \n"
         code += name + numname[CUBA.PRESSURE] + "=p\n"
         return code

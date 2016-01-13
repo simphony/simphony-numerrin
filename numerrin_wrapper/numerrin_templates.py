@@ -35,16 +35,27 @@ numname = {CUBA.RADIUS: "Radius",
            CUBA.PRESSURE: "Pressure",
            CUBA.VOLUME_FRACTION: "VolumeFraction",
            CUBAExt.SURFACE_TENSION: "SurfaceTension",
-           CUBAExt.PHASE_LIST: "PhaseList"}
+           CUBAExt.PHASE_LIST: "PhaseList",
+           CUBA.ANGULAR_VELOCITY: "RelativeVelocity",
+           CUBA.ACCELERATION: "Sigma",
+           CUBA.ANGULAR_ACCELERATION: "Strain",
+           CUBAExt.RELATIVE_VELOCITY_MODEL: "RelativeVelocityModel",
+           CUBAExt.RELATIVE_VELOCITY_MODEL_COEFFS:
+               "RelativeVelocityModelCoeffs",
+           CUBAExt.STRESS_MODEL: "StressModel",
+           CUBAExt.EXTERNAL_BODY_FORCE_MODEL: "ExternalBodyForceModel",
+           CUBAExt.EXTERNAL_BODY_FORCE_MODEL_COEFFS:
+               "ExternalBodyForceModelCoeffs"
+           }
 
-multiphase_solvers = ("VOFLaminar")
+multiphase_solvers = ("VOFLaminar", "mixtureModelLaminar")
 
 timeLoop = {'steadyStateLaminar':
-             """
+            """
 For iteration=1:1
              """,
-                 'timeDependentLaminar':
-             """
+            'timeDependentLaminar':
+                """
 For iteration=1:NumberOfTimeSteps
     curTime +=TimeStep
     uoo=uo
@@ -55,36 +66,47 @@ For iteration=1:NumberOfTimeSteps
     EndFor
 
              """,
-             'VOFLaminar':
-             """
+            'VOFLaminar':
+                """
 For iteration=1:NumberOfTimeSteps
     curTime +=TimeStep
     uo=u
     phio=phi
 
+             """,
+            'mixtureModelLaminar':
+                """
+For iteration=1:NumberOfTimeSteps
+    curTime +=TimeStep
+    uo=u
+    phio=phi
              """
-
-}
+            }
 
 functionSpaces = {'steadyStateLaminar':
-             """
+                  """
 V=Space(omega,\"Lagrange\",1)
 W=Space(omega,\"Lagrange\",1)
              """,
-                 'timeDependentLaminar':
-             """
+                  'timeDependentLaminar':
+                      """
 V=Space(omega,\"Split\",2)
 W=Space(omega,\"Lagrange\",1)
              """,
-             'VOFLaminar':
-             """
+                  'VOFLaminar':
+                      """
+V=Space(omega,\"Lagrange\",2)
+W=Space(omega,\"Lagrange\",1)
+             """,
+                  'mixtureModelLaminar':
+                      """
 V=Space(omega,\"Lagrange\",2)
 W=Space(omega,\"Lagrange\",1)
              """
-}
+                  }
 
 associations = {'steadyStateLaminar':
-             """
+                """
 u[0:2] in V
 p in W
 q[0:2]->u
@@ -92,7 +114,7 @@ q[3]->p
 r:=q
              """,
                 'timeDependentLaminar':
-             """
+                    """
 u[0:2] in V
 p in W
 q[0:2]->u
@@ -101,7 +123,7 @@ r:=q
 uo=u
              """,
                 'VOFLaminar':
-             """
+                    """
 u[0:2] in V
 phi in W
 p in W
@@ -118,8 +140,26 @@ mu2={phase2_name}Viscosity
 SurfaceTension={phase1_name}{phase2_name}SurfaceTension
 sc=1.0e+3
 
+             """,
+                'mixtureModelLaminar':
+                    """
+u[0:2] in V
+phi in W
+p in W
+q->u
+q[3]->phi
+q[4]->p
+r:=q
+pdt=1.0/TimeStep
+uo=u
+rho1={phase1_name}Density
+rho2={phase2_name}Density
+mu1={phase1_name}Viscosity
+mu2={phase2_name}Viscosity
+sc=1.0e+3
+
              """
-}
+                }
 
 functions = {'steadyStateLaminar':
              """
@@ -138,7 +178,7 @@ EndSubroutine
 
              """,
              'timeDependentLaminar':
-             """
+                 """
 Subroutine upwindv(v,rho,mu,nor,vf) result(vup)
   vn:=v(.) dot nor
   If vn > 0.0
@@ -169,7 +209,59 @@ EndSubroutine
 
              """,
              'VOFLaminar':
-             """
+                 """
+Subroutine upwindv(v,rho,mu,nor,vf) result(vup)
+  vn:=v(.) dot nor
+  If vn > 0.0
+    For i=0:Size(vf)-1
+      If vf[i] > 0.1
+        j=i
+        Exit
+      EndIf
+    EndFor
+  Else
+    For i=0:Size(vf)-1
+      If vf[i] < -0.1
+        j=i
+        Exit
+      EndIf
+    EndFor
+  EndIf
+  alpha:=rho*Norm(v(.))*ElementSize/(2*mu)
+  If alpha > 1.0e-6
+    ksi=1/Tanh(alpha)-1/alpha
+  Else
+    ksi=0.0
+  EndIf
+  For i=0:Size(v)-1
+    vup[i]=ksi*BasisCoefficients(v[i](.))[j]+(1-ksi)*v[i](.)
+  EndFor
+EndSubroutine
+
+Subroutine upwindphi(v,nor,phi,vf) Result(phiu)
+  vn:=v(.) dot nor
+  If vn > 0.0
+    For i=0:Size(vf)-1
+      If vf[i] > 0.1
+        up=i
+        Exit
+      EndIf
+    EndFor
+  Else
+    For i=0:Size(vf)-1
+      If vf[i] < -0.1
+        up=i
+        Exit
+      EndIf
+    EndFor
+  EndIf
+
+  phiu=BasisCoefficients(phi(.))[up]
+EndSubroutine
+
+             """,
+             'mixtureModelLaminar':
+                 """
 Subroutine upwindv(v,rho,mu,nor,vf) result(vup)
   vn:=v(.) dot nor
   If vn > 0.0
@@ -220,8 +312,7 @@ Subroutine upwindphi(v,nor,phi,vf) Result(phiu)
 EndSubroutine
 
              """
-
-}
+             }
 
 solverFrames = {'steadyStateLaminar':
                 """
@@ -286,12 +377,11 @@ A=Derivative(r,q)
 
                 """,
                 'timeDependentLaminar':
-                """
+                    """
     A=Derivative(r,q)
     A=0.0
     r=0.0
     Integral(omega,"VlSrc2",1)
-%      ? elementnumber
       vf:=VolumeFunction
       up0=BasisCoefficients(u[0](.)) dot vf
       up1=BasisCoefficients(u[1](.)) dot vf
@@ -307,25 +397,31 @@ A=Derivative(r,q)
       r[2] <- Density*0.5/TimeStep*(uoop2-4*uop2+3*up2)*vf
     EndIntegral
 
-    Integral(omega,"VlFlx2",1)
+    Integral(omega,"VlFlx2",3)
       nor:=NormalVector
       vf:=VolumeFunction
       gup=Grad(u(.))
-      
+
       tau:=Viscosity*(gup+gup')
       uu:=upwindv(u,Density,Viscosity,nor,vf)
       r[0] <- ((Density*uu[0]*u(.)-tau[:,0]) dot nor+p(.)*nor[0])*vf
       r[1] <- ((Density*uu[1]*u(.)-tau[:,1]) dot nor+p(.)*nor[1])*vf
       r[2] <- ((Density*uu[2]*u(.)-tau[:,2]) dot nor+p(.)*nor[2])*vf
     EndIntegral
+    Integral(omega,"VlFlx1",3)
+      nor:=NormalVector
+      vf:=VolumeFunction
+      r[3] <- u(.) dot nor*vf
+    EndIntegral
 
              """,
-             'VOFLaminar':
-             """
+                'VOFLaminar':
+                    """
     A=Derivative(r,q)
     A=0.0
     r=0.0
     % Momentum time derivative
+    ? "time der mom"
     Integral(omega,"VlSrc2",3)
       vf:=VolumeFunction
       rhop=phi(.)*rho2+(1-phi(.))*rho1
@@ -335,6 +431,7 @@ A=Derivative(r,q)
       r[2] <- sc*pdt*(rhop*u[2](.)-rhopo*uo[2](.))*vf
     EndIntegral
     % Volume fraction time derivative
+    ? "time der cont"
     Integral(omega,"VlSrc1",1)
       vf:=VolumeFunction
       phip:=BasisCoefficients(phi(.)) dot vf
@@ -342,6 +439,7 @@ A=Derivative(r,q)
       r[3] <- sc*pdt*(phip-phiop)*vf
     EndIntegral
     % Momentum flux
+    ? "Mom flux"
     Integral(omega,"VlFlx2",3)
       nor:=NormalVector
       vf:=VolumeFunction
@@ -352,10 +450,16 @@ A=Derivative(r,q)
       ngp=Norm(gpp)
       % Surface tension
       If ngp > 1.0e-6
-        T[0,0]=ngp-gpp[0]*gpp[0]/ngp T[0,1]=-gpp[0]*gpp[1]/ngp T[0,2]=-gpp[0]*gpp[2]/ngp
-        T[1,0]=-gpp[1]*gpp[0]/ngp T[1,1]=ngp-gpp[1]*gpp[1]/ngp T[1,2]=-gpp[1]*gpp[2]/ngp
-        T[2,0]=-gpp[2]*gpp[0]/ngp T[2,1]=-gpp[2]*gpp[1]/ngp T[2,2]=ngp-gpp[2]*gpp[2]/ngp
-	T *= SurfaceTension
+        T[0,0]=ngp-gpp[0]*gpp[0]/ngp
+        T[0,1]=-gpp[0]*gpp[1]/ngp
+        T[0,2]=-gpp[0]*gpp[2]/ngp
+        T[1,0]=-gpp[1]*gpp[0]/ngp
+        T[1,1]=ngp-gpp[1]*gpp[1]/ngp
+        T[1,2]=-gpp[1]*gpp[2]/ngp
+        T[2,0]=-gpp[2]*gpp[0]/ngp
+        T[2,1]=-gpp[2]*gpp[1]/ngp
+        T[2,2]=ngp-gpp[2]*gpp[2]/ngp
+        T *= SurfaceTension
       Else
         T[0:2,0:2]=0.0
       EndIf
@@ -375,31 +479,137 @@ A=Derivative(r,q)
       r[4] <- sc*u(.) dot nor*vf
     EndIntegral
 
-             """
-}
+             """,
+                'mixtureModelLaminar':
+                    """
+    A=Derivative(r,q)
+    A=0.0
+    r=0.0
+    % Momentum time derivative
+    ? "time der mom"
+    Integral(omega,"VlSrc2",3)
+      vf:=VolumeFunction
+      rhop=phi(.)*rho2+(1-phi(.))*rho1
+      rhopo=phio(.)*rho2+(1-phio(.))*rho1
+%      gradPhi = Grad(phi(.))
+%      gradRhom = rho2*gradPhi-rho1*gradPhi
+      r[0] <- sc*pdt*(rhop*u[0](.)-rhopo*uo[0](.))*vf %+ sc*G[0]*gradRhom[0]*vf
+      r[1] <- sc*pdt*(rhop*u[1](.)-rhopo*uo[1](.))*vf %+ sc*G[1]*gradRhom[1]*vf
+      r[2] <- sc*pdt*(rhop*u[2](.)-rhopo*uo[2](.))*vf %+ sc*G[2]*gradRhom[2]*vf
+    EndIntegral
+    ? "time der cont"
+    % Volume fraction time derivative
+    Integral(omega,"VlSrc1",1)
+      vf:=VolumeFunction
+      phip:=BasisCoefficients(phi(.)) dot vf
+      phiop:=BasisCoefficients(phio(.)) dot vf
+      r[3] <- sc*pdt*(phip-phiop)*vf
+    EndIntegral
+    % Momentum flux
+    Integral(omega,"VlFlx2",3)
+      nor:=NormalVector
+      vf:=VolumeFunction
+      gup=Grad(u(.))
+      phip:=phi(.)
+      rhom=phip*rho2+(1-phip)*rho1
+      muEff=phip*mu2+(1-phip)*mu1
+
+      tau:=muEff*(gup+gup')
+      uu:=upwindv(u,rhom,muEff,nor,vf)
+      cd=phip*rho2/rhom
+      udm=rho1/rhom*{relative_velocity}
+      % normaalijännitys myös mukaan !!!!!!!
+      SigmaPrime:={sigma}-tau
+      tauDm0:=rhom*cd*(1-cd)*udm[0]*udm+rhom*uu[0]*u(.)-tau[:,0]-SigmaPrime[:,0]
+      tauDm1:=rhom*cd*(1-cd)*udm[1]*udm+rhom*uu[1]*u(.)-tau[:,1]-SigmaPrime[:,1]
+      tauDm2:=rhom*cd*(1-cd)*udm[2]*udm+rhom*uu[2]*u(.)-tau[:,2]-SigmaPrime[:,2]
+      r[0] <- sc*(tauDm0 dot nor+p(.)*nor[0])*vf
+      r[1] <- sc*(tauDm1 dot nor+p(.)*nor[1])*vf
+      r[2] <- sc*(tauDm2 dot nor+p(.)*nor[2])*vf
+    EndIntegral
+   % continuity flux
+   Integral(omega,"VlFlx1",3)
+      nor:=NormalVector
+      vf:=VolumeFunction
+      phiu:=upwindphi(u,nor,phi,vf)
+      phip:=phi(.)
+      rhom=phip*rho2+(1-phi(.))*rho1
+      udm=rho1/rhom*{relative_velocity}
+      cd=phip*rho1/rhom
+      r[3] <- sc*phiu*((u(.) + (1-cd)*udm) dot nor)*vf
+      r[4] <- sc*u(.) dot nor*vf
+    EndIntegral
+
+                   """
+
+                }
+
 
 def get_numerrin_solver(CM):
     GE = CM[CUBAExt.GE]
-    if CUBAExt.VOF in GE:
+    if CUBAExt.VOF_MODEL in GE:
         solver = "VOFLaminar"
+    elif CUBAExt.MIXTURE_MODEL in GE:
+        solver = "mixtureModelLaminar"
     elif CUBAExt.LAMINAR_MODEL in GE:
-        #            solver = "steadyStateLaminar"
         solver = "timeDependentLaminar"
     else:
         error_str = "GE does not define supported solver: GE = {}"
         raise NotImplementedError(error_str.format(GE))
     return solver
 
+
 def to_numerrin_expression(expr):
 
     if isinstance(expr, list) or isinstance(expr, tuple):
         return_value = []
         for value in expr:
-            print "val ", '{:.5e}'.format(value)
-            return_value.append(re.sub('(e|E)\+0','e+',
-                                       re.sub('(e|E)\-0',
-                                              'e-','{:.5e}'.format(value))))
+            return_value.append(to_numerrin_expression(value))
         return return_value
 
-    return re.sub('(e|E)\+0','e+',re.sub('(e|E)\-0','e-',
-                                          '{:.5e}'.format(expr)))
+    return re.sub('(e|E)\+0', 'e+', re.sub('(e|E)\-0', 'e-',
+                                           '{:.5e}'.format(expr)))
+
+
+def relative_velocity_code(SPExt):
+
+    if CUBAExt.RELATIVE_VELOCITY_MODEL in SPExt:
+        rv = "RelativeVelocity"
+        if SPExt[CUBAExt.RELATIVE_VELOCITY_MODEL] == 'simple':
+            relative_velocity = "V0" + rv + "ModelCoeffs*10.0^(-" + "a" + rv\
+                + "ModelCoeffs*Max(phip,0))"
+        else:
+            relative_velocity = rv
+        return relative_velocity
+    else:
+        error_str = "Relative velocity model not specified"
+        raise ValueError(error_str)
+
+
+def mixture_model(SPExt):
+
+    relative_velocity = relative_velocity_code(SPExt)
+
+    if CUBAExt.STRESS_MODEL in SPExt:
+        if SPExt[CUBAExt.STRESS_MODEL] == "standard":
+            sigma = "tau"
+        else:
+            sigma = "Sigma(.)"
+    else:
+        error_str = "Stress model (standard or fromMesoscale) not specified"
+        raise ValueError(error_str)
+
+    return solverFrames["mixtureModelLaminar"].format(
+        relative_velocity=relative_velocity,
+        sigma=sigma)
+
+
+def external_body_force_model(SPExt):
+
+    if CUBAExt.EXTERNAL_BODY_FORCE_MODEL in SPExt:
+        if SPExt[CUBAExt.EXTERNAL_BODY_FORCE_MODEL] == 'gravitation':
+            g = SPExt[CUBAExt.EXTERNAL_BODY_FORCE_MODEL_COEFFS]["g"]
+            return "G[0]=" + str(g[0]) + "\nG[1]=" + str(g[1]) + "\nG[2]="\
+                + str(g[2]) + "\n"
+
+    return "G[0]=0.0" + "\nG[1]=0.0" + "\nG[2]=0.0\n"

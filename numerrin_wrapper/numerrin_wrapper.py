@@ -16,13 +16,13 @@ from .cuba_extension import CUBAExt
 import numerrin
 
 
-class NumerrinWrapper(ABCModelingEngine):
+class Wrapper(ABCModelingEngine):
     """ Wrapper to Numerrin
 
     """
 
     def __init__(self):
-        super(NumerrinWrapper, self).__init__()
+        super(Wrapper, self).__init__()
         numerrin.initlocal("", "PYNUMERRIN_LICENSE", liccode)
         self.pool = NumerrinPool()
         self.code = NumerrinCode(self.pool.ph)
@@ -45,13 +45,8 @@ class NumerrinWrapper(ABCModelingEngine):
 
         # put SP parameters to pool
         for key in self.SP:
-            print "a ",numname[key]
-            print "b ",self.SP[key]
             self.pool.put_parameter(numname[key], self.SP[key])
         for key in self.SP_extensions:
-            print "key ",key
-            print "a ",numname[key]
-            print "b ",self.SP_extensions[key]
             self.pool.put_parameter(numname[key], self.SP_extensions[key])
         # parse solver code
         if self._first:
@@ -63,6 +58,7 @@ class NumerrinWrapper(ABCModelingEngine):
                                                  self.CM_extensions) +
                     self.code.generate_code(self.CM,
                                             self.SP,
+                                            self.SP_extensions,
                                             self.BC,
                                             self.CM_extensions))
             f.close()
@@ -76,6 +72,7 @@ class NumerrinWrapper(ABCModelingEngine):
                                              self.CM_extensions) +
                 self.code.generate_code(self.CM,
                                         self.SP,
+                                        self.SP_extensions,
                                         self.BC,
                                         self.CM_extensions))
             self._first = False

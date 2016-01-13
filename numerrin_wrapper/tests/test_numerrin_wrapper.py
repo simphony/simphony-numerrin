@@ -11,13 +11,13 @@ from simphony.cuds.mesh import Mesh, Face, Point, Cell
 from simphony.core.cuba import CUBA
 from simphony.core.data_container import DataContainer
 
-from numerrin_wrapper.numerrin_wrapper import NumerrinWrapper
+from numerrin_wrapper.numerrin_wrapper import Wrapper
 from numerrin_wrapper.cuba_extension import CUBAExt
 from numerrin_wrapper.mesh_utils import create_quad_mesh
 
 
-class NumerrinWrapperTestCase(unittest.TestCase):
-    """Test case for NumerrinWrapper class"""
+class WrapperTestCase(unittest.TestCase):
+    """Test case for Wrapper class"""
     def setUp(self):
         self.mesh = Mesh(name="mesh1")
 
@@ -73,7 +73,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
 
         """
 
-        wrapper = NumerrinWrapper()
+        wrapper = Wrapper()
         wrapper.add_dataset(self.mesh)
         self.assertEqual(sum(1 for _ in wrapper.iter_datasets()), 1)
 
@@ -82,7 +82,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
 
         """
 
-        wrapper = NumerrinWrapper()
+        wrapper = Wrapper()
         wrapper.add_dataset(self.mesh)
         wrapper.remove_dataset(self.mesh.name)
         with self.assertRaises(KeyError):
@@ -93,7 +93,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
 
         """
 
-        wrapper = NumerrinWrapper()
+        wrapper = Wrapper()
         wrapper.add_dataset(self.mesh)
         mesh_inside_wrapper = wrapper.get_dataset(self.mesh.name)
         self.assertEqual(self.mesh.name, mesh_inside_wrapper.name)
@@ -119,7 +119,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
 
         """
 
-        wrapper = NumerrinWrapper()
+        wrapper = Wrapper()
         wrapper.add_dataset(self.mesh)
         mesh2 = self.mesh
         mesh2.name = "mesh2"
@@ -132,7 +132,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
 
         """
 
-        wrapper = NumerrinWrapper()
+        wrapper = Wrapper()
         wrapper.add_dataset(self.mesh)
         mesh2 = self.mesh
         mesh2.name = "mesh2"
@@ -150,7 +150,7 @@ class NumerrinWrapperTestCase(unittest.TestCase):
 
         """
 
-        wrapper = NumerrinWrapper()
+        wrapper = Wrapper()
         name = 'simplemesh'
         corner_points = ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0))
         extrude_length = 1
