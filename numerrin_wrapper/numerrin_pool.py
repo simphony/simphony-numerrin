@@ -3,7 +3,6 @@
 Module for operations on Numerrin pool
 
 """
-from simphony.core.cuba import CUBA
 from simphony.cuds.mesh import Mesh, Point, Edge, Face, Cell
 from simphony.core.cuds_item import CUDSItem
 
@@ -23,7 +22,7 @@ class NumerrinPool(object):
     def __del__(self):
         numerrin.deletepool(self.ph)
 
-    def export_mesh(self, name, boundaries):
+    def export_mesh(self, s_name, name, boundary_names):
         """ export Numerrin mesh from pool to SimPhoNy Mesh object
 
         Parameters
@@ -31,8 +30,8 @@ class NumerrinPool(object):
         name : str
             name of mesh
 
-        name : list int
-            list of boundary numbers to be exported
+        boundary_names : list str
+            list of boundary domain names
 
         Return
         ------
@@ -42,7 +41,7 @@ class NumerrinPool(object):
 
         """
 
-        simphonyMesh = Mesh(name)
+        simphonyMesh = Mesh(s_name)
         uuids = []
         mmap = {}
         meshsize = numerrin.meshsize(self.ph, name)
@@ -83,17 +82,14 @@ class NumerrinPool(object):
                 labeluidmap[i] = fa.uid
             simphonyMesh.add_faces(faces)
 
-            faces_to_update = []
-            for boundary in boundaries:
-                boundary_name = name+"domains"+str(boundary)
+            boundaries = {}
+            for boundary in boundary_names:
+                boundaries[boundary] = []
                 boundary_faces = numerrin.getelementnumbers(self.ph,
-                                                            boundary_name)
+                                                            name+boundary)
                 for boundary_face in boundary_faces:
-                    face = simphonyMesh.get_face(labeluidmap[boundary_face])
-                    # boundaryname ends to number which is used for label
-                    face.data[CUBA.LABEL] = boundary
-                    faces_to_update.append(face)
-            simphonyMesh.update_faces(faces_to_update)
+                    boundaries[boundary].append(
+                        labeluidmap[boundary_face])
 
         if len(meshsize) > 3:
             cells = []
@@ -108,9 +104,9 @@ class NumerrinPool(object):
                 mmap[ce.uid] = i
             simphonyMesh.add_cells(cells)
 
-        return (simphonyMesh, mmap)
+        return (simphonyMesh, mmap, boundaries)
 
-    def import_mesh(self, name, simphonyMesh):
+    def import_mesh(self, name, simphonyMesh, boundaries):
         """ import SimPhoNy mesh to Numerrin pool as Numerrin mesh
 
         Parameters
@@ -170,7 +166,6 @@ class NumerrinPool(object):
 
         indx = 0
         fmap = {}
-        boundary_faces = {}
         for face in simphonyMesh.iter_faces():
             pind = []
             for point in face.points:
@@ -183,13 +178,13 @@ class NumerrinPool(object):
             numerrin.setelement(self.ph, name, 2, indx, 0, tuple(pind))
             mmap[face.uid] = indx
             fmap[indx] = face.uid
-            if CUBA.LABEL in face.data:
-                blabel = face.data[CUBA.LABEL]
-                bname = name + "domains" + str(blabel)
-                if bname not in boundary_faces:
-                    boundary_faces[bname] = []
-                boundary_faces[bname].append(indx)
             indx = indx+1
+
+        boundary_faces = {}
+        for boundary in boundaries:
+            boundary_faces[boundary] = []
+            for fuid in boundaries[boundary]:
+                boundary_faces[boundary].append(mmap[fuid])
 
         indx = 0
         cmap = {}
@@ -239,19 +234,14 @@ class NumerrinPool(object):
         # add inner domain
         numerrin.createdomain(self.ph, "omega", name, 3, tuple(cell_ids))
         # add boundary domains
-        face_boundary_list = []
-        for boundary_name in boundary_faces:
-            numerrin.createboundary(self.ph, boundary_name, name,
-                                    2, tuple(boundary_faces[boundary_name]))
-            # add boundary corresponding list of faces as a variable
-            for indx in boundary_faces[boundary_name]:
-                face_boundary_list.append(boundary_name+"Face"+str(indx))
-
-        # this to get back face corresponding boundary name
-        numerrin.putvariable(self.ph, name + "boundaryFaces",
-                             tuple(face_boundary_list))
+        self.add_boundaries(name, boundaries, boundary_faces)
 
         return [mmap, pmap, emap, fmap, cmap]
+
+    def add_boundaries(self, name, boundaries, boundary_faces):
+        for boundary_name in boundaries:
+            numerrin.createboundary(self.ph, name+boundary_name, name,
+                                    2, tuple(boundary_faces[boundary_name]))
 
     def clear(self):
         """ clear Numerrin pool
@@ -365,6 +355,41 @@ class NumerrinPool(object):
         """
         numerrin.putvariable(self.ph, name, var)
 
+    def create_space(self, name, domain_name, basis_name, basis_degree):
+        """ create space to Numerrin pool
+
+        Parameters
+        ----------
+        name : str
+            name of space
+        domain_name : str
+            name of domain
+        basis_name : str
+            name of function basis
+        basis_degree : int
+            degree of basis function
+        """
+        numerrin.createspace(self.ph, name, domain_name, basis_name,
+                             basis_degree)
+
+    def create_realfunction(self, name, space_name, function_size):
+        """ create space to Numerrin pool
+
+        Parameters
+        ----------
+        name : str
+            name of realfunction
+        space_name : str
+            name of function space
+        function_size : int or tuple
+            size of the function space
+        """
+#        print type(self.ph)
+#        print type(name)
+#        print type(space_name)
+#        print type(function_size)
+        numerrin.createrealfunction(self.ph, name, space_name, function_size)
+
     def modify_variable(self, name, var):
         """ modify variable values in pool
 
@@ -450,25 +475,22 @@ class NumerrinPool(object):
                                           2, label, 0)
         return face_renode(list(pointLabels))
 
-    def get_face_boundary_label(self, name, label):
-        """ get boundary label on which face belongs
+    def get_cell_points(self, name, label):
+        """ get mesh cell points from pool
 
         Parameters
         ----------
         name : str
             name of mesh
         label : int
-            face label
+            cell label
 
         Return
         ------
-        bname : int
-            boundary label for face
+        labels : list
+            list of face points labels
 
         """
-        face_boundary_list = self.get_variable(name+"boundaryFaces")
-        face_label = "Face"+str(label)
-        facew = next((w for w in face_boundary_list if face_label in w), None)
-        bname = facew.replace(face_label, '')
-        bnumber = bname.replace(name+"domains", '')
-        return int(bnumber)
+        pointLabels = numerrin.getelement(self.ph, name,
+                                          3, label, 0)
+        return cell_renode(list(pointLabels))

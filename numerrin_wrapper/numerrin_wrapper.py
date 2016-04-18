@@ -10,7 +10,7 @@ from simphony.core.data_container import DataContainer
 from .numerrin_pool import NumerrinPool
 from .numerrin_code import NumerrinCode
 from .numerrin_mesh import NumerrinMesh
-from .numerrin_templates import numname, liccode
+from .numerrin_templates import numname, liccode, get_numerrin_solver
 from .cuba_extension import CUBAExt
 
 import numerrin
@@ -43,11 +43,16 @@ class Wrapper(ABCModelingEngine):
 
         """
 
+        # assume that only one dataset
+        mesh = self.iter_datasets().next()
+
         # put SP parameters to pool
         for key in self.SP:
             self.pool.put_parameter(numname[key], self.SP[key])
         for key in self.SP_extensions:
             self.pool.put_parameter(numname[key], self.SP_extensions[key])
+        # init variables to pool if not initialized
+        mesh.init_point_variables(get_numerrin_solver(self.CM_extensions))
         # parse solver code
         if self._first:
             f = open('code.num', 'w')
@@ -60,7 +65,8 @@ class Wrapper(ABCModelingEngine):
                                             self.SP,
                                             self.SP_extensions,
                                             self.BC,
-                                            self.CM_extensions))
+                                            self.CM_extensions,
+                                            mesh))
             f.close()
             # initialize time
             self.pool.put_variable('curTime', 0.0)
@@ -74,15 +80,18 @@ class Wrapper(ABCModelingEngine):
                                         self.SP,
                                         self.SP_extensions,
                                         self.BC,
-                                        self.CM_extensions))
+                                        self.CM_extensions,
+                                        mesh))
             self._first = False
         else:
             self.code.clear()
             self.code.parse_string(
                 self.code.generate_code(self.CM,
                                         self.SP,
+                                        self.SP_extensions,
                                         self.BC,
-                                        self.CM_extensions))
+                                        self.CM_extensions,
+                                        mesh))
 
         # execute code
         number_of_cores = 1
@@ -90,8 +99,7 @@ class Wrapper(ABCModelingEngine):
             number_of_cores = self.CM_extensions[CUBAExt.NUMBER_OF_CORES]
         self.code.execute(number_of_cores)
         # save time
-        for mesh in self.iter_datasets():
-            mesh._time = self.pool.get_variable('curTime')
+        mesh._time = self.pool.get_variable('curTime')
 
     def add_dataset(self, mesh):
         """Add a mesh to the Numerrin modeling engine.

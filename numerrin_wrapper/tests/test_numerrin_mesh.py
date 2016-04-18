@@ -65,21 +65,13 @@ class NumerrinMeshTestCase(unittest.TestCase):
         self.puids = puids
 
         self.faces = [
-            Face([puids[0], puids[3], puids[7], puids[4]],
-                 data=DataContainer({CUBA.LABEL: 0})),
-            Face([puids[1], puids[2], puids[6], puids[5]],
-                 data=DataContainer({CUBA.LABEL: 1})),
-            Face([puids[0], puids[1], puids[5], puids[4]],
-                 data=DataContainer({CUBA.LABEL: 2})),
-            Face([puids[3], puids[2], puids[6], puids[7]],
-                 data=DataContainer({CUBA.LABEL: 3})),
-            Face([puids[0], puids[1], puids[2], puids[3]],
-                 data=DataContainer({CUBA.LABEL: 4})),
-            Face([puids[4], puids[5], puids[6], puids[7]],
-                 data=DataContainer({CUBA.LABEL: 5}))
-
+            Face([puids[0], puids[3], puids[7], puids[4]]),
+            Face([puids[1], puids[2], puids[6], puids[5]]),
+            Face([puids[0], puids[1], puids[5], puids[4]]),
+            Face([puids[3], puids[2], puids[6], puids[7]]),
+            Face([puids[0], puids[1], puids[2], puids[3]]),
+            Face([puids[4], puids[5], puids[6], puids[7]])
         ]
-
 
         self.mesh.add_faces(self.faces)
 
@@ -219,8 +211,7 @@ class NumerrinMeshTestCase(unittest.TestCase):
         num_mesh = NumerrinMesh('test_mesh', self.mesh, self.pool)
         for face_f in num_mesh.iter_faces():
             face = self.mesh.get_face(face_f.uid)
-            self.assertEqual(face.data[CUBA.LABEL],
-                             face_f.data[CUBA.LABEL])
+            self.assertEqual(face.points, face_f.points)
 
     def test_iter_points(self):
         """Test iter_points method

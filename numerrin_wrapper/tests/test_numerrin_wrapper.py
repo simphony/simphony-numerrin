@@ -6,10 +6,10 @@ numerrin_wrapper module functionalities
 """
 
 import unittest
+import math
 
 from simphony.cuds.mesh import Mesh, Face, Point, Cell
 from simphony.core.cuba import CUBA
-from simphony.core.data_container import DataContainer
 
 from numerrin_wrapper.numerrin_wrapper import Wrapper
 from numerrin_wrapper.cuba_extension import CUBAExt
@@ -43,19 +43,12 @@ class WrapperTestCase(unittest.TestCase):
         puids = self.mesh.add_points(self.points)
 
         self.faces = [
-            Face([puids[0], puids[3], puids[7], puids[4]],
-                 data=DataContainer({CUBA.LABEL: 0})),
-            Face([puids[1], puids[2], puids[6], puids[5]],
-                 data=DataContainer({CUBA.LABEL: 1})),
-            Face([puids[0], puids[1], puids[5], puids[4]],
-                 data=DataContainer({CUBA.LABEL: 2})),
-            Face([puids[3], puids[2], puids[6], puids[7]],
-                 data=DataContainer({CUBA.LABEL: 3})),
-            Face([puids[0], puids[1], puids[2], puids[3]],
-                 data=DataContainer({CUBA.LABEL: 4})),
-            Face([puids[4], puids[5], puids[6], puids[7]],
-                 data=DataContainer({CUBA.LABEL: 5}))
-
+            Face([puids[0], puids[3], puids[7], puids[4]]),
+            Face([puids[1], puids[2], puids[6], puids[5]]),
+            Face([puids[0], puids[1], puids[5], puids[4]]),
+            Face([puids[3], puids[2], puids[6], puids[7]]),
+            Face([puids[0], puids[1], puids[2], puids[3]]),
+            Face([puids[4], puids[5], puids[6], puids[7]])
         ]
 
         self.mesh.add_faces(self.faces)
@@ -107,7 +100,6 @@ class WrapperTestCase(unittest.TestCase):
             face_w = mesh_inside_wrapper.get_face(face.uid)
             self.assertEqual(face.uid, face_w.uid)
             self.assertEqual(face.points, face_w.points)
-            self.assertEqual(face.data, face_w.data)
 
         for cell in self.mesh.iter_cells():
             cell_w = mesh_inside_wrapper.get_cell(cell.uid)
@@ -167,14 +159,14 @@ class WrapperTestCase(unittest.TestCase):
         wrapper.SP[CUBA.NUMBER_OF_TIME_STEPS] = 1
         wrapper.SP[CUBA.DENSITY] = 1.0
         wrapper.SP[CUBA.DYNAMIC_VISCOSITY] = 1.0
-        wrapper.BC[CUBA.VELOCITY] = {'boundary0': (0.1, 0, 0),
-                                     'boundary1': 'zeroGradient',
-                                     'boundary2': (0, 0, 0),
-                                     'boundary3': 'empty'}
-        wrapper.BC[CUBA.PRESSURE] = {'boundary0': 'zeroGradient',
-                                     'boundary1': 0,
-                                     'boundary2': 'zeroGradient',
-                                     'boundary3': 'empty'}
+        wrapper.BC[CUBA.VELOCITY] = {'inflow': ('fixedValue', (0.1, 0, 0)),
+                                     'outflow': 'zeroGradient',
+                                     'walls': ('fixedValue', (0, 0, 0)),
+                                     'frontAndBack': 'empty'}
+        wrapper.BC[CUBA.PRESSURE] = {'inflow': 'zeroGradient',
+                                     'outflow': ('fixedValue', 0),
+                                     'walls': 'zeroGradient',
+                                     'frontAndBack': 'empty'}
 
         mesh_inside_wrapper = wrapper.get_dataset(name)
 
@@ -184,7 +176,9 @@ class WrapperTestCase(unittest.TestCase):
         old_vel = 0.0
         old_pres = 0.0
         for point in mesh_inside_wrapper.iter_points():
-            old_vel += point.data[CUBA.VELOCITY]
+            velo = point.data[CUBA.VELOCITY]
+            old_vel += math.sqrt(velo[0]*velo[0] + velo[1]*velo[1] +
+                                 velo[2]*velo[2])
             old_pres += point.data[CUBA.PRESSURE]
 
         wrapper.SP[CUBA.DENSITY] = 5.0
@@ -195,7 +189,9 @@ class WrapperTestCase(unittest.TestCase):
         new_vel = 0.0
         new_pres = 0.0
         for point in mesh_inside_wrapper.iter_points():
-            new_vel += point.data[CUBA.VELOCITY]
+            velo = point.data[CUBA.VELOCITY]
+            new_vel += math.sqrt(velo[0]*velo[0] + velo[1]*velo[1] +
+                                 velo[2]*velo[2])
             new_pres += point.data[CUBA.PRESSURE]
 
         self.assertNotAlmostEqual(old_vel, new_vel, 5)

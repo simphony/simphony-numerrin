@@ -48,7 +48,43 @@ numname = {CUBA.RADIUS: "Radius",
                "ExternalBodyForceModelCoeffs"
            }
 
-multiphase_solvers = ("VOFLaminar", "mixtureModelLaminar")
+solver_variable_names = {CUBA.VELOCITY: "u",
+                         CUBA.PRESSURE: "p",
+                         CUBA.VOLUME_FRACTION: "phi"
+                         }
+
+solver_variables = {'VOFLaminar': (CUBA.VELOCITY,
+                                   CUBA.PRESSURE,
+                                   CUBA.VOLUME_FRACTION),
+                    'mixtureModelLaminar': (CUBA.VELOCITY,
+                                            CUBA.PRESSURE,
+                                            CUBA.VOLUME_FRACTION),
+                    'timeDependentLaminar': (CUBA.VELOCITY,
+                                             CUBA.PRESSURE),
+                    'steadyStateLaminar': (CUBA.VELOCITY,
+                                           CUBA.PRESSURE)
+                    }
+
+variable_dimension = {CUBA.VELOCITY: 3,
+                      CUBA.PRESSURE: 1,
+                      CUBA.VOLUME_FRACTION: 1}
+
+solver_space_names = {'VOFLaminar': {CUBA.VELOCITY: 'V',
+                                     CUBA.PRESSURE: 'W',
+                                     CUBA.VOLUME_FRACTION: 'W'},
+                      'mixtureModelLaminar': {CUBA.VELOCITY: 'V',
+                                              CUBA.PRESSURE: 'W',
+                                              CUBA.VOLUME_FRACTION: 'W'},
+                      'timeDependentLaminar': {CUBA.VELOCITY: 'V',
+                                               CUBA.PRESSURE: 'W'},
+                      'steadyStateLaminar': {CUBA.VELOCITY: 'V',
+                                             CUBA.PRESSURE: 'W'}
+                      }
+
+multiphase_solvers = ('VOFLaminar', 'mixtureModelLaminar')
+
+non_fixed_boundary_types = ("zeroGradient", "empty", "slip")
+zero_normal_velocity_types = ("empty", "slip")
 
 timeLoop = {'steadyStateLaminar':
             """
@@ -111,6 +147,7 @@ u[0:2] in V
 p in W
 q[0:2]->u
 q[3]->p
+{extra_associations}
 r:=q
              """,
                 'timeDependentLaminar':
@@ -119,6 +156,7 @@ u[0:2] in V
 p in W
 q[0:2]->u
 q[3]->p
+{extra_associations}
 r:=q
 uo=u
              """,
@@ -130,6 +168,7 @@ p in W
 q->u
 q[3]->phi
 q[4]->p
+{extra_associations}
 r:=q
 pdt=1.0/TimeStep
 uo=u
@@ -138,7 +177,8 @@ rho2={phase2_name}Density
 mu1={phase1_name}Viscosity
 mu2={phase2_name}Viscosity
 SurfaceTension={phase1_name}{phase2_name}SurfaceTension
-sc=1.0e+3
+%sc=1.0e+3
+sc=1.0
 
              """,
                 'mixtureModelLaminar':
@@ -149,6 +189,7 @@ p in W
 q->u
 q[3]->phi
 q[4]->p
+{extra_associations}
 r:=q
 pdt=1.0/TimeStep
 uo=u
@@ -156,7 +197,8 @@ rho1={phase1_name}Density
 rho2={phase2_name}Density
 mu1={phase1_name}Viscosity
 mu2={phase2_name}Viscosity
-sc=1.0e+3
+%sc=1.0e+3
+sc=1.0
 
              """
                 }
@@ -491,11 +533,11 @@ A=Derivative(r,q)
       vf:=VolumeFunction
       rhop=phi(.)*rho2+(1-phi(.))*rho1
       rhopo=phio(.)*rho2+(1-phio(.))*rho1
-%      gradPhi = Grad(phi(.))
-%      gradRhom = rho2*gradPhi-rho1*gradPhi
-      r[0] <- sc*pdt*(rhop*u[0](.)-rhopo*uo[0](.))*vf %+ sc*G[0]*gradRhom[0]*vf
-      r[1] <- sc*pdt*(rhop*u[1](.)-rhopo*uo[1](.))*vf %+ sc*G[1]*gradRhom[1]*vf
-      r[2] <- sc*pdt*(rhop*u[2](.)-rhopo*uo[2](.))*vf %+ sc*G[2]*gradRhom[2]*vf
+      gradPhi = Grad(phi(.))
+      gradRhom = rho2*gradPhi-rho1*gradPhi
+      r[0] <- sc*pdt*(rhop*u[0](.)-rhopo*uo[0](.))*vf + sc*G[0]*gradRhom[0]*vf
+      r[1] <- sc*pdt*(rhop*u[1](.)-rhopo*uo[1](.))*vf + sc*G[1]*gradRhom[1]*vf
+      r[2] <- sc*pdt*(rhop*u[2](.)-rhopo*uo[2](.))*vf + sc*G[2]*gradRhom[2]*vf
     EndIntegral
     ? "time der cont"
     % Volume fraction time derivative
@@ -505,24 +547,32 @@ A=Derivative(r,q)
       phiop:=BasisCoefficients(phio(.)) dot vf
       r[3] <- sc*pdt*(phip-phiop)*vf
     EndIntegral
+    Integral(omega,"VlSrc1",3)
+      vf:=VolumeFunction
+      rhop=phi(.)*rho2+(1-phi(.))*rho1
+      rhopo=phio(.)*rho2+(1-phio(.))*rho1
+      r[4] <- sc*pdt*(rhop-rhopo)*vf
+    EndIntegral
     % Momentum flux
     Integral(omega,"VlFlx2",3)
       nor:=NormalVector
       vf:=VolumeFunction
       gup=Grad(u(.))
       phip:=phi(.)
-      rhom=phip*rho2+(1-phip)*rho1
+      betap=phip*rho2
+      betac=(1-phip)*rho1
+      rhom=betap+betac
       muEff=phip*mu2+(1-phip)*mu1
 
       tau:=muEff*(gup+gup')
       uu:=upwindv(u,rhom,muEff,nor,vf)
-      cd=phip*rho2/rhom
-      udm=rho1/rhom*{relative_velocity}
+      vr={relative_velocity}
+      coef=betap*betac/rhom
       % normaalijännitys myös mukaan !!!!!!!
       SigmaPrime:={sigma}-tau
-      tauDm0:=rhom*cd*(1-cd)*udm[0]*udm+rhom*uu[0]*u(.)-tau[:,0]-SigmaPrime[:,0]
-      tauDm1:=rhom*cd*(1-cd)*udm[1]*udm+rhom*uu[1]*u(.)-tau[:,1]-SigmaPrime[:,1]
-      tauDm2:=rhom*cd*(1-cd)*udm[2]*udm+rhom*uu[2]*u(.)-tau[:,2]-SigmaPrime[:,2]
+      tauDm0:=coef*vr[0]*vr+rhom*uu[0]*u(.)-tau[:,0]-SigmaPrime[:,0]
+      tauDm1:=coef*vr[1]*vr+rhom*uu[1]*u(.)-tau[:,1]-SigmaPrime[:,1]
+      tauDm2:=coef*vr[2]*vr+rhom*uu[2]*u(.)-tau[:,2]-SigmaPrime[:,2]
       r[0] <- sc*(tauDm0 dot nor+p(.)*nor[0])*vf
       r[1] <- sc*(tauDm1 dot nor+p(.)*nor[1])*vf
       r[2] <- sc*(tauDm2 dot nor+p(.)*nor[2])*vf
@@ -531,13 +581,16 @@ A=Derivative(r,q)
    Integral(omega,"VlFlx1",3)
       nor:=NormalVector
       vf:=VolumeFunction
-      phiu:=upwindphi(u,nor,phi,vf)
       phip:=phi(.)
-      rhom=phip*rho2+(1-phi(.))*rho1
-      udm=rho1/rhom*{relative_velocity}
-      cd=phip*rho1/rhom
-      r[3] <- sc*phiu*((u(.) + (1-cd)*udm) dot nor)*vf
-      r[4] <- sc*u(.) dot nor*vf
+      betac=(1-phip)*rho1
+      rhom=phip*rho2+betac
+      vr={relative_velocity}
+      coef=betac/rhom
+      uconv=u(.)+coef*vr
+      phiu:=upwindphi(uconv,nor,phi,vf)
+
+      r[3] <- sc*((phiu*uconv) dot nor)*vf
+      r[4] <- sc*rhom*u(.) dot nor*vf
     EndIntegral
 
                    """
@@ -613,3 +666,15 @@ def external_body_force_model(SPExt):
                 + str(g[2]) + "\n"
 
     return "G[0]=0.0" + "\nG[1]=0.0" + "\nG[2]=0.0\n"
+
+
+def check_boundary_names(bc_names, boundary_names, cuba):
+    if not set(bc_names).issubset(set(boundary_names)):
+        error_str = "Boundary name(s) used in boundary conditions "
+        error_str += "for {} does not exist.\nUsed name(s) are: {}\n"
+        error_str += "Boundary names defined in the mesh are: {}\n"
+        raise ValueError(
+            error_str.format(cuba.name,
+                             list(set(bc_names).difference(
+                                 set(boundary_names))),
+                             boundary_names))

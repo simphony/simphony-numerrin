@@ -53,19 +53,12 @@ class NumerrinCodeTestCase(unittest.TestCase):
         puids = self.mesh.add_points(self.points)
 
         self.faces = [
-            Face([puids[0], puids[3], puids[7], puids[4]],
-                 data=DataContainer({CUBA.LABEL: 0})),
-            Face([puids[1], puids[2], puids[6], puids[5]],
-                 data=DataContainer({CUBA.LABEL: 1})),
-            Face([puids[0], puids[1], puids[5], puids[4]],
-                 data=DataContainer({CUBA.LABEL: 2})),
-            Face([puids[3], puids[2], puids[6], puids[7]],
-                 data=DataContainer({CUBA.LABEL: 3})),
-            Face([puids[0], puids[1], puids[2], puids[3]],
-                 data=DataContainer({CUBA.LABEL: 4})),
-            Face([puids[4], puids[5], puids[6], puids[7]],
-                 data=DataContainer({CUBA.LABEL: 5}))
-
+            Face([puids[0], puids[3], puids[7], puids[4]]),
+            Face([puids[1], puids[2], puids[6], puids[5]]),
+            Face([puids[0], puids[1], puids[5], puids[4]]),
+            Face([puids[3], puids[2], puids[6], puids[7]]),
+            Face([puids[0], puids[1], puids[2], puids[3]]),
+            Face([puids[4], puids[5], puids[6], puids[7]])
         ]
 
         self.mesh.add_faces(self.faces)
@@ -77,6 +70,10 @@ class NumerrinCodeTestCase(unittest.TestCase):
         self.puids = puids
 
         self.mesh.add_cells(self.cells)
+
+        self.boundaries = {}
+        for i in range(6):
+            self.boundaries['boundary'+str(i)] = [self.faces[i].uid]
 
     def test_parse_file(self):
         """Test parse_file method
@@ -120,6 +117,7 @@ class NumerrinCodeTestCase(unittest.TestCase):
         """
         CM = DataContainer()
         SP = DataContainer()
+        SPExt = DataContainer()
         BC = DataContainer()
         CMExt = {}
         CM[CUBA.NAME] = self.mesh.name
@@ -129,15 +127,15 @@ class NumerrinCodeTestCase(unittest.TestCase):
         SP[CUBA.NUMBER_OF_TIME_STEPS] = 2
         SP[CUBA.DENSITY] = 1.0
         SP[CUBA.DYNAMIC_VISCOSITY] = 1.0
-        BC[CUBA.VELOCITY] = {'boundary0': (0.1, 0, 0)}
+        BC[CUBA.VELOCITY] = {'boundary0': ('fixedValue', (0.1, 0, 0))}
         BC[CUBA.PRESSURE] = {'boundary0': 'zeroGradient'}
 
-        self.pool.import_mesh(self.mesh.name, self.mesh)
+        self.pool.import_mesh(self.mesh.name, self.mesh, self.boundaries)
         for key in SP:
             self.pool.put_variable(numname[key], SP[key])
 
-        codestring = self.code.generate_init_code(CM, SP, BC, CMExt) +\
-                     self.code.generate_code(CM, SP, BC, CMExt)
+        codestring = self.code.generate_init_code(CM, SP, SPExt, BC, CMExt) +\
+            self.code.generate_code(CM, SP, SPExt, BC, CMExt)
 
         self.code.parse_string(codestring)
 

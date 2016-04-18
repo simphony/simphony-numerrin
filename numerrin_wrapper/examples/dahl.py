@@ -4,6 +4,12 @@
 from simphony.core.cuba import CUBA
 
 from simphony.engine import numerrin
+from simphony.engine import openfoam_file_io
+
+from mayavi.scripts import mayavi2
+
+import dahl_mesh
+import tempfile
 
 wrapper = numerrin.Wrapper()
 CUBAExt = numerrin.CUBAExt
@@ -19,9 +25,9 @@ wrapper.CM_extensions[CUBAExt.GE] = (CUBAExt.INCOMPRESSIBLE,
 wrapper.CM_extensions[CUBAExt.NUMBER_OF_CORES] = 4
 
 wrapper.SP[CUBA.TIME_STEP] = 0.1
-wrapper.SP[CUBA.NUMBER_OF_TIME_STEPS] = 1
+wrapper.SP[CUBA.NUMBER_OF_TIME_STEPS] = 10
 
-wrapper.SP_extensions[CUBAExt.PHASE_LIST] = ('sludge', 'water')
+wrapper.SP_extensions[CUBAExt.PHASE_LIST] = ('water', 'sludge')
 wrapper.SP[CUBA.DENSITY] = {'sludge': 1900.0, 'water': 1000.0}
 wrapper.SP[CUBA.DYNAMIC_VISCOSITY] = {'sludge': 0.01, 'water': 1e-3}
 wrapper.SP_extensions[CUBAExt.STRESS_MODEL] = 'standard'
@@ -31,34 +37,29 @@ wrapper.SP_extensions[CUBAExt.RELATIVE_VELOCITY_MODEL_COEFFS] =\
 wrapper.SP_extensions[CUBAExt.EXTERNAL_BODY_FORCE_MODEL] = 'gravitation'
 wrapper.SP_extensions[CUBAExt.EXTERNAL_BODY_FORCE_MODEL_COEFFS] =\
     {'g': (0.0, -9.81, 0.0)}
-wrapper.BC[CUBA.VELOCITY] = {'boundary0': ('fixedValue', (0.0191, 0, 0)),
-                             'boundary1': 'zeroGradient',
-                             'boundary2': ('fixedValue', (0, 0, 0)),
-                             'boundary3': 'empty'}
-wrapper.BC[CUBA.PRESSURE] = {'boundary0': 'zeroGradient',
-                             'boundary1': ('fixedValue', 0),
-                             'boundary2': 'zeroGradient',
-                             'boundary3': 'empty'}
-wrapper.BC[CUBA.VOLUME_FRACTION] = {'boundary0': ('fixedValue', 1),
-                                    'boundary1': 'zeroGradient',
-                                    'boundary2': 'zeroGradient',
-                                    'boundary3': 'empty'}
+wrapper.BC[CUBA.VELOCITY] = {'inlet': ('fixedValue', (0.0191, 0, 0)),
+                             'outlet': 'zeroGradient',
+                             'bottomWall': ('fixedValue', (0, 0, 0)),
+                             'endWall': ('fixedValue', (0, 0, 0)),
+                             'top': 'slip',
+                             'frontAndBack': 'empty'}
+wrapper.BC[CUBA.PRESSURE] = {'inlet': 'zeroGradient',
+                             'outlet': ('fixedValue', 0),
+                             'bottomWall': 'zeroGradient',
+                             'endWall': 'zeroGradient',
+                             'top': 'zeroGradient',
+                             'frontAndBack': 'empty'}
 
-corner_points=((0.0,0.0), (20.0e-3,0.0), (20.0e-3,1.0e-3), (0.0,1.0e-3))
-extrude_length = 0.1e-3
-nex = 10
-ney = 4
-nez = 1
+wrapper.BC[CUBA.VOLUME_FRACTION] = {'inlet': ('fixedValue', 0.001),
+                                    'outlet': 'zeroGradient',
+                                    'bottomWall': 'zeroGradient',
+                                    'endWall': 'zeroGradient',
+                                    'top': 'zeroGradient',
+                                    'frontAndBack': 'empty'}
 
-## create mesh
-#corner_points=((0.0,0.0), (8.65,0.0), (8.65,1.0), (0.0,1.0))
-#extrude_length = 0.1
-#nex = 33
-#ney = 3
-#nez = 1
-
-numerrin.create_quad_mesh(name, wrapper, corner_points,
-                 extrude_length, nex, ney, nez)
+# create mesh
+openfoam_file_io.create_block_mesh(tempfile.mkdtemp(), name, wrapper,
+                                   dahl_mesh.blockMeshDict)
 
 mesh_inside_wrapper = wrapper.get_dataset(name)
 
@@ -74,3 +75,18 @@ mesh_inside_wrapper.update_points(updated_points)
 
 wrapper.run()
 print "Run up to time: ", mesh_inside_wrapper._time
+
+
+@mayavi2.standalone
+def view():
+    from mayavi.modules.surface import Surface
+    from simphony_mayavi.sources.api import CUDSSource
+
+    mayavi.new_scene()  # noqa
+    src = CUDSSource(cuds=mesh_inside_wrapper)
+    mayavi.add_source(src)  # noqa
+    s = Surface()
+    mayavi.add_module(s)  # noqa
+
+if __name__ == '__main__':
+    view()
