@@ -1,6 +1,11 @@
 Simphony-Numerrin CHANGELOG
 ======================
 
+Release 0.1.2
+-------------
+* use version 0.3.1 commit 413eb6f5683c4733b943c300c3192265c79ac26b
+* add solvers for mixture model and vof
+
 Release 0.1.1
 -------------
 
