@@ -264,5 +264,6 @@ class NumerrinMeshTestCase(unittest.TestCase):
         self.assertEqual(num_mesh.count_of(item_type),
                          self.mesh.count_of(item_type))
 
+
 if __name__ == '__main__':
     unittest.main()

@@ -203,5 +203,6 @@ class NumerrinPoolTestCase(unittest.TestCase):
                          set([p.coordinates for p in self.mesh.iter_points()]))
         self.assertEqual(boundaries.keys(), boundary_names)
 
+
 if __name__ == '__main__':
     unittest.main()

@@ -57,13 +57,13 @@ wrapper.BC[CUBA.VOLUME_FRACTION] = {'boundary0': ('fixedValue', 0.001),
                                     'boundary5': 'empty'}
 
 # create mesh
-corner_points=((0.0,0.0), (8.65,0.0), (8.65,1.0), (0.0,1.0))
+corner_points = ((0.0, 0.0), (8.65, 0.0), (8.65, 1.0), (0.0, 1.0))
 extrude_length = 0.1
 nex = 33
 ney = 3
 nez = 1
 numerrin.create_quad_mesh(name, wrapper, corner_points,
-                 extrude_length, nex, ney, nez)
+                          extrude_length, nex, ney, nez)
 
 mesh_inside_wrapper = wrapper.get_dataset(name)
 
