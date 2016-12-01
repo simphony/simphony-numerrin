@@ -5,11 +5,13 @@ and modify a mesh and related data
 
 """
 from simphony.cuds.abc_mesh import ABCMesh
-from simphony.cuds.mesh import Face, Point, Cell
-from simphony.core.cuba import CUBA
+from simphony.cuds.mesh import Point, Edge, Face, Cell
 from simphony.core.cuds_item import CUDSItem
 
-from .numerrin_templates import numname, numvariables
+from .numerrin_templates import (numname, numvariables,
+                                 solver_variables, variable_dimension)
+
+import simphony.core.data_container as dc
 
 import numerrin
 
@@ -56,9 +58,23 @@ class NumerrinMesh(ABCMesh):
     def __init__(self, name, mesh, pool):
         super(NumerrinMesh, self).__init__()
         self.name = name
+        self.data = dc.DataContainer()
         self.pool = pool
         self._time = str(0)
-        maps = self.pool.import_mesh(name, mesh)
+        self._boundaries = {}
+        maps = self.pool.import_mesh(name, mesh, self._boundaries)
+
+        if hasattr(mesh, '_boundaries'):
+            boundary_faces = {}
+            for boundary in mesh._boundaries:
+                boundary_faces[boundary] = []
+                for fuid in mesh._boundaries[boundary]:
+                    boundary_faces[boundary].append(maps[0][fuid])
+            self.pool.add_boundaries(name, mesh._boundaries,
+                                     boundary_faces)
+            # this assumes that face uids are remained
+            self._boundaries = mesh._boundaries
+
         self._uuidToNumLabel = maps[0]
         self._numPointLabelToUuid = maps[1]
         self._numEdgeLabelToUuid = maps[2]
@@ -135,8 +151,15 @@ class NumerrinMesh(ABCMesh):
             If the edge identified by uuid was not found
 
         """
-        message = "Edges are not supported yet in Numerrin engine"
-        raise NotImplementedError(message)
+
+        try:
+            pointLabels = self.pool.get_edge_points(self.name,
+                                                    self._uuidToNumLabel[uuid])
+            puids = [self._numPointLabelToUuid[lbl] for lbl in pointLabels]
+            return Edge(puids, uuid)
+        except KeyError:
+            error_str = "Trying to get an non-existing edge with uuid: {}"
+            raise ValueError(error_str.format(uuid))
 
     def get_face(self, uuid):
         """Returns a face with a given uuid.
@@ -167,15 +190,9 @@ class NumerrinMesh(ABCMesh):
                                                     self._uuidToNumLabel[uuid])
             puids = [self._numPointLabelToUuid[lbl] for lbl in pointLabels]
             face = Face(puids, uuid)
-            try:
-                blabel = self.pool.get_face_boundary_label(
-                    self.name, self._uuidToNumLabel[uuid])
-                face.data[CUBA.LABEL] = blabel
-            except RuntimeError:
-                pass
             return face
         except KeyError:
-            error_str = "Trying to get an non-existing edge with uuid: {}"
+            error_str = "Trying to get an non-existing face with uuid: {}"
             raise ValueError(error_str.format(uuid))
 
     def get_cell(self, uuid):
@@ -203,9 +220,8 @@ class NumerrinMesh(ABCMesh):
         """
 
         try:
-            pointLabels = numerrin.getelement(self.pool.ph, self.name,
-                                              3, self._uuidToNumLabel[uuid],
-                                              0)
+            pointLabels = self.pool.get_cell_points(self.name,
+                                                    self._uuidToNumLabel[uuid])
             puids = [self._numPointLabelToUuid[lbl] for lbl in pointLabels]
             cell = Cell(puids, uuid)
             return cell
@@ -229,6 +245,23 @@ class NumerrinMesh(ABCMesh):
     def add_cells(self, cells):
         message = 'Cells addition not supported yet'
         raise NotImplementedError(message)
+
+    def init_point_variables(self, solver):
+        for dkey in solver_variables[solver]:
+            dataName = numname[dkey]
+            vname = self.name + dataName
+            try:
+                self.pool.get_real_function(vname)
+            except:
+                # create variable if not in pool
+                v_size = variable_dimension[dkey]
+                # Lagrange 1 space
+                space_name = vname + "LS1"
+                domain_name = "omega"
+                self.pool.create_space(space_name, domain_name,
+                                       'Lagrange', 1)
+                self.pool.create_realfunction(vname, space_name,
+                                              v_size)
 
     def update_points(self, points):
         """ Updates the information of a set of points.
@@ -256,31 +289,63 @@ class NumerrinMesh(ABCMesh):
                     "Trying to update a non-existing point with uuid: "\
                     + str(point.uid)
                 raise KeyError(error_str)
-
+            label = self._uuidToNumLabel[point.uid]
             for dkey in numvariables:
                 dataName = numname[dkey]
                 vname = self.name + dataName
                 if dkey in point.data:
                     try:
+                        var = point.data[dkey]
                         if vname not in vdata:
-                            vdata[vname] = list(self.pool.get_variable(vname))
-                        vdata[vname][self._uuidToNumLabel[point.uid]] =\
-                            point.data[dkey]
+                            point_list = self.pool.get_real_function(vname)
+                            if type(var) is tuple or type(var) is list:
+                                vdata[vname] =\
+                                    list(list([value[i] for value in
+                                               point_list])
+                                         for i in range(len(var)))
+                            else:
+                                vdata[vname] =\
+                                    list(list([value for value in
+                                               point_list])
+                                         for i in range(1))
+                        if type(var) is tuple or type(var) is list:
+                            for i in range(len(var)):
+                                vdata[vname][i][label] =\
+                                    float(var[i])
+                        else:
+                            vdata[vname][0][label] = float(var)
                     except:
                         # create variable if not in pool
                         var = point.data[dkey]
-                        if type(var) is tuple:
+                        if type(var) is tuple or type(var) is list:
+                            v_size = len(var)
                             vdata[vname] =\
-                                list([(0, 0, 0) for _ in self.iter_points()])
+                                list(list([0 for _ in self.iter_points()])
+                                     for i in range(len(var)))
+                            for i in range(len(var)):
+                                vdata[vname][i][label] =\
+                                    float(var[i])
                         else:
+                            v_size = 1
                             vdata[vname] =\
-                                list([0 for _ in self.iter_points()])
-                        vdata[vname][self._uuidToNumLabel[point.uid]] =\
-                            point.data[dkey]
-                        self.pool.put_variable(vname, tuple(vdata[vname]))
+                                list(list([0 for _ in self.iter_points()])
+                                     for i in range(1))
+                            vdata[vname][0][label] = float(point.data[dkey])
+                        # Lagrange 1 space
+                        space_name = vname + "LS1"
+                        domain_name = "omega"
+                        self.pool.create_space(space_name, domain_name,
+                                               'Lagrange', 1)
+                        self.pool.create_realfunction(vname, space_name,
+                                                      v_size)
 
         for vname in vdata:
-            self.pool.modify_variable(vname, tuple(vdata[vname]))
+            for i in range(len(vdata[vname])):
+                if len(vdata[vname]) > 1:
+                    var_name = vname + "[" + str(i) + "][[:]]"
+                else:
+                    var_name = vname + "[[:]]"
+                self.pool.modify_variable(var_name, tuple(vdata[vname][i]))
 
     def update_edges(self, edges):
         message = 'Edges update not supported yet'

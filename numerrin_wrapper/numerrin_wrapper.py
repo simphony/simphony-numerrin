@@ -10,18 +10,19 @@ from simphony.core.data_container import DataContainer
 from .numerrin_pool import NumerrinPool
 from .numerrin_code import NumerrinCode
 from .numerrin_mesh import NumerrinMesh
-from .numerrin_templates import numname, liccode
+from .numerrin_templates import numname, liccode, get_numerrin_solver
+from .cuba_extension import CUBAExt
 
 import numerrin
 
 
-class NumerrinWrapper(ABCModelingEngine):
+class Wrapper(ABCModelingEngine):
     """ Wrapper to Numerrin
 
     """
 
     def __init__(self):
-        super(NumerrinWrapper, self).__init__()
+        super(Wrapper, self).__init__()
         numerrin.initlocal("", "PYNUMERRIN_LICENSE", liccode)
         self.pool = NumerrinPool()
         self.code = NumerrinCode(self.pool.ph)
@@ -30,6 +31,7 @@ class NumerrinWrapper(ABCModelingEngine):
         self.SP = DataContainer()
         self.BC = DataContainer()
         self.CM_extensions = {}
+        self.SP_extensions = {}
         self._first = True
 
     def run(self):
@@ -41,23 +43,63 @@ class NumerrinWrapper(ABCModelingEngine):
 
         """
 
+        # assume that only one dataset
+        mesh = self.iter_datasets().next()
+
         # put SP parameters to pool
         for key in self.SP:
-            self.pool.put_variable(numname[key], self.SP[key])
+            self.pool.put_parameter(numname[key], self.SP[key])
+        for key in self.SP_extensions:
+            self.pool.put_parameter(numname[key], self.SP_extensions[key])
+        # init variables to pool if not initialized
+        mesh.init_point_variables(get_numerrin_solver(self.CM_extensions))
         # parse solver code
         if self._first:
+            f = open('code.num', 'w')
+            f.write(self.code.generate_init_code(self.CM,
+                                                 self.SP,
+                                                 self.SP_extensions,
+                                                 self.BC,
+                                                 self.CM_extensions) +
+                    self.code.generate_code(self.CM,
+                                            self.SP,
+                                            self.SP_extensions,
+                                            self.BC,
+                                            self.CM_extensions,
+                                            mesh))
+            f.close()
+            # initialize time
+            self.pool.put_variable('curTime', 0.0)
+            self.code.parse_string(
+                self.code.generate_init_code(self.CM,
+                                             self.SP,
+                                             self.SP_extensions,
+                                             self.BC,
+                                             self.CM_extensions) +
+                self.code.generate_code(self.CM,
+                                        self.SP,
+                                        self.SP_extensions,
+                                        self.BC,
+                                        self.CM_extensions,
+                                        mesh))
+            self._first = False
+        else:
+            self.code.clear()
             self.code.parse_string(
                 self.code.generate_code(self.CM,
                                         self.SP,
+                                        self.SP_extensions,
                                         self.BC,
-                                        self.CM_extensions))
-            self._first = False
+                                        self.CM_extensions,
+                                        mesh))
 
         # execute code
-        self.code.execute(1)
-        # save last iteration
-        for mesh in self.iter_datasets():
-            mesh._time = self.pool.get_variable('iteration')
+        number_of_cores = 1
+        if CUBAExt.NUMBER_OF_CORES in self.CM_extensions:
+            number_of_cores = self.CM_extensions[CUBAExt.NUMBER_OF_CORES]
+        self.code.execute(number_of_cores)
+        # save time
+        mesh._time = self.pool.get_variable('curTime')
 
     def add_dataset(self, mesh):
         """Add a mesh to the Numerrin modeling engine.

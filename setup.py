@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 with open('README.rst', 'r') as readme:
     README_TEXT = readme.read()
 
-VERSION = '0.1.1.dev0'
+VERSION = '0.1.2.dev0'
 
 
 def write_version_py(filename=None):
@@ -31,8 +31,7 @@ setup(
     description='Implementation of the SimPhoNy Numerrin -wrapper',
     long_description=README_TEXT,
     packages=find_packages(),
-    install_requires=['simphony >= 0.2.0'],
+    install_requires=['simphony == 0.3.1.*'],
     entry_points={
         'simphony.engine': ['numerrin = numerrin_wrapper']}
-
 )

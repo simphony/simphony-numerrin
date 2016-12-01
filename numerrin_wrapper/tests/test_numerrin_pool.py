@@ -90,13 +90,17 @@ class NumerrinPoolTestCase(unittest.TestCase):
         self.variablename = self.mesh.name + "Velocity"
         self.variable = tuple([(0.0, 0.0, 0.0) for _ in self.points])
 
+        self.boundaries = {}
+        for i in range(6):
+            self.boundaries['boundary'+str(i)] = [self.faces[i].uid]
+
     def test_import_mesh(self):
         """Test import_mesh method
 
         """
 
         pool = NumerrinPool()
-        pool.import_mesh(self.mesh.name, self.mesh)
+        pool.import_mesh(self.mesh.name, self.mesh, self.boundaries)
         self.assertEqual(numerrin.meshsize(pool.ph, self.mesh.name)[0],
                          len(self.points))
         self.assertEqual(numerrin.meshsize(pool.ph, self.mesh.name)[2],
@@ -110,7 +114,7 @@ class NumerrinPoolTestCase(unittest.TestCase):
         """
 
         pool = NumerrinPool()
-        pool.import_mesh(self.mesh.name, self.mesh)
+        pool.import_mesh(self.mesh.name, self.mesh, self.boundaries)
         pool.clear()
         with self.assertRaises(RuntimeError):
             numerrin.meshsize(pool.ph, self.mesh.name)
@@ -121,7 +125,7 @@ class NumerrinPoolTestCase(unittest.TestCase):
         """
 
         pool = NumerrinPool()
-        pool.import_mesh(self.mesh.name, self.mesh)
+        pool.import_mesh(self.mesh.name, self.mesh, self.boundaries)
         self.assertEqual(pool.variable_type(self.mesh.name), "Mesh")
 
     def test_variable_rank(self):
@@ -170,7 +174,7 @@ class NumerrinPoolTestCase(unittest.TestCase):
         """
 
         pool = NumerrinPool()
-        pool.import_mesh(self.mesh.name, self.mesh)
+        pool.import_mesh(self.mesh.name, self.mesh, self.boundaries)
         pool.put_variable(self.variablename, self.variable)
         pool.delete_mesh_and_variables(self.mesh.name)
 
@@ -185,9 +189,10 @@ class NumerrinPoolTestCase(unittest.TestCase):
         """
 
         pool = NumerrinPool()
-        pool.import_mesh(self.mesh.name, self.mesh)
-        boundaries = [0, 1, 2, 3, 4, 5]
-        (smesh, mmap) = pool.export_mesh(self.mesh.name, boundaries)
+        pool.import_mesh(self.mesh.name, self.mesh, self.boundaries)
+        boundary_names = self.boundaries.keys()
+        (smesh, mmap, boundaries) = pool.export_mesh(self.mesh.name,
+                                                     boundary_names)
         self.assertEqual(sum(1 for _ in smesh.iter_points()),
                          sum(1 for _ in self.mesh.iter_points()))
         self.assertEqual(sum(1 for _ in smesh.iter_faces()),
@@ -196,6 +201,8 @@ class NumerrinPoolTestCase(unittest.TestCase):
                          sum(1 for _ in self.mesh.iter_cells()))
         self.assertEqual(set([p.coordinates for p in smesh.iter_points()]),
                          set([p.coordinates for p in self.mesh.iter_points()]))
+        self.assertEqual(boundaries.keys(), boundary_names)
+
 
 if __name__ == '__main__':
     unittest.main()
