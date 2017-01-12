@@ -21,5 +21,6 @@ install:
   - python setup.py develop
 script:
   - flake8 .
+  - python -m unittest discover
 after_success:
   - coveralls
