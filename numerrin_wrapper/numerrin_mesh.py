@@ -5,8 +5,8 @@ and modify a mesh and related data
 
 """
 from simphony.cuds.abc_mesh import ABCMesh
+from simphony.core.cuba import CUBA
 from simphony.cuds.mesh import Point, Edge, Face, Cell
-from simphony.core.cuds_item import CUDSItem
 
 from .numerrin_templates import (numname, numvariables,
                                  solver_variables, variable_dimension)
@@ -83,7 +83,7 @@ class NumerrinMesh(ABCMesh):
         # point data
         self.update_points(mesh.iter_points())
 
-    def get_point(self, uuid):
+    def _get_point(self, uuid):
         """Returns a point with a given uuid.
 
         Returns the point stored in the mesh
@@ -128,7 +128,7 @@ class NumerrinMesh(ABCMesh):
             error_str = "Trying to get an non-existing point with uuid: {}"
             raise ValueError(error_str.format(uuid))
 
-    def get_edge(self, uuid):
+    def _get_edge(self, uuid):
         """Returns an edge with a given uuid.
 
         Returns the edge stored in the mesh
@@ -161,7 +161,7 @@ class NumerrinMesh(ABCMesh):
             error_str = "Trying to get an non-existing edge with uuid: {}"
             raise ValueError(error_str.format(uuid))
 
-    def get_face(self, uuid):
+    def _get_face(self, uuid):
         """Returns a face with a given uuid.
 
         Returns the face stored in the mesh
@@ -195,7 +195,7 @@ class NumerrinMesh(ABCMesh):
             error_str = "Trying to get an non-existing face with uuid: {}"
             raise ValueError(error_str.format(uuid))
 
-    def get_cell(self, uuid):
+    def _get_cell(self, uuid):
         """Returns a cell with a given uuid.
 
         Returns the cell stored in the mesh
@@ -230,19 +230,19 @@ class NumerrinMesh(ABCMesh):
             error_str = "Trying to get an non-existing cell with uuid: {}"
             raise ValueError(error_str.format(uuid))
 
-    def add_points(self, points):
+    def _add_points(self, points):
         message = 'Points addition not supported yet'
         raise NotImplementedError(message)
 
-    def add_edges(self, edges):
+    def _add_edges(self, edges):
         message = 'Edges addition not supported yet'
         raise NotImplementedError(message)
 
-    def add_faces(self, faces):
+    def _add_faces(self, faces):
         message = 'Faces addition not supported yet'
         raise NotImplementedError(message)
 
-    def add_cells(self, cells):
+    def _add_cells(self, cells):
         message = 'Cells addition not supported yet'
         raise NotImplementedError(message)
 
@@ -263,7 +263,7 @@ class NumerrinMesh(ABCMesh):
                 self.pool.create_realfunction(vname, space_name,
                                               v_size)
 
-    def update_points(self, points):
+    def _update_points(self, points):
         """ Updates the information of a set of points.
 
         Gets the mesh point from set identified by the same
@@ -320,7 +320,7 @@ class NumerrinMesh(ABCMesh):
                         if type(var) is tuple or type(var) is list:
                             v_size = len(var)
                             vdata[vname] =\
-                                list(list([0 for _ in self.iter_points()])
+                                list(list([0 for _ in self._iter_points()])
                                      for i in range(len(var)))
                             for i in range(len(var)):
                                 vdata[vname][i][label] =\
@@ -328,7 +328,7 @@ class NumerrinMesh(ABCMesh):
                         else:
                             v_size = 1
                             vdata[vname] =\
-                                list(list([0 for _ in self.iter_points()])
+                                list(list([0 for _ in self._iter_points()])
                                      for i in range(1))
                             vdata[vname][0][label] = float(point.data[dkey])
                         # Lagrange 1 space
@@ -347,19 +347,19 @@ class NumerrinMesh(ABCMesh):
                     var_name = vname + "[[:]]"
                 self.pool.modify_variable(var_name, tuple(vdata[vname][i]))
 
-    def update_edges(self, edges):
+    def _update_edges(self, edges):
         message = 'Edges update not supported yet'
         raise NotImplementedError(message)
 
-    def update_faces(self, faces):
+    def _update_faces(self, faces):
         message = 'Faces update not supported yet'
         raise NotImplementedError(message)
 
-    def update_cells(self, cells):
+    def _update_cells(self, cells):
         message = 'Cells update not supported yet'
         raise NotImplementedError(message)
 
-    def iter_points(self, point_uuids=None):
+    def _iter_points(self, point_uuids=None):
         """Returns an iterator over the selected points.
 
         Returns an iterator over the points with uuid in
@@ -383,13 +383,13 @@ class NumerrinMesh(ABCMesh):
         if point_uuids is None:
             pointCount = self.pool.mesh_size(self.name)[0]
             for label in range(pointCount):
-                yield self.get_point(self._numPointLabelToUuid[label])
+                yield self._get_point(self._numPointLabelToUuid[label])
         else:
             for uid in point_uuids:
-                point = self.get_point(uid)
+                point = self._get_point(uid)
                 yield point
 
-    def iter_edges(self, edge_uuids=None):
+    def _iter_edges(self, edge_uuids=None):
         """Returns an iterator over the selected edges.
 
         Returns an iterator over the edges with uuid in
@@ -413,13 +413,13 @@ class NumerrinMesh(ABCMesh):
         if edge_uuids is None:
             edgeCount = self.pool.mesh_size(self.name)[1]
             for label in range(edgeCount):
-                yield self.get_edge(self._numEdgeLabelToUuid[label])
+                yield self._get_edge(self._numEdgeLabelToUuid[label])
         else:
             for uid in edge_uuids:
-                edge = self.get_edge(uid)
+                edge = self._get_edge(uid)
                 yield edge
 
-    def iter_faces(self, face_uuids=None):
+    def _iter_faces(self, face_uuids=None):
         """Returns an iterator over the selected faces.
 
         Returns an iterator over the faces with uuid in
@@ -443,13 +443,13 @@ class NumerrinMesh(ABCMesh):
         if face_uuids is None:
             faceCount = self.pool.mesh_size(self.name)[2]
             for label in range(faceCount):
-                yield self.get_face(self._numFaceLabelToUuid[label])
+                yield self._get_face(self._numFaceLabelToUuid[label])
         else:
             for uid in face_uuids:
-                face = self.get_face(uid)
+                face = self._get_face(uid)
                 yield face
 
-    def iter_cells(self, cell_uuids=None):
+    def _iter_cells(self, cell_uuids=None):
         """Returns an iterator over the selected cells.
 
         Returns an iterator over the cells with uuid in
@@ -473,13 +473,13 @@ class NumerrinMesh(ABCMesh):
         if cell_uuids is None:
             cellCount = self.pool.mesh_size(self.name)[3]
             for label in range(cellCount):
-                yield self.get_cell(self._numCellLabelToUuid[label])
+                yield self._get_cell(self._numCellLabelToUuid[label])
         else:
             for uid in cell_uuids:
-                cell = self.get_cell(uid)
+                cell = self._get_cell(uid)
                 yield cell
 
-    def has_edges(self):
+    def _has_edges(self):
         """Check if the mesh has edges
 
         Returns
@@ -493,7 +493,7 @@ class NumerrinMesh(ABCMesh):
         numberEdges = self.pool.mesh_size(self.name)[1]
         return numberEdges > 0
 
-    def has_faces(self):
+    def _has_faces(self):
         """Check if the mesh has faces
 
         Returns
@@ -506,7 +506,7 @@ class NumerrinMesh(ABCMesh):
         numberFaces = self.pool.mesh_size(self.name)[2]
         return numberFaces > 0
 
-    def has_cells(self):
+    def _has_cells(self):
         """Check if the mesh has cells
 
         Returns
@@ -524,7 +524,7 @@ class NumerrinMesh(ABCMesh):
 
         Parameters
         ----------
-        item_type : CUDSItem
+        item_type : CUBA item
             The CUDSItem enum of the type of the items to return the count of.
 
         Returns
@@ -540,13 +540,13 @@ class NumerrinMesh(ABCMesh):
 
         """
 
-        if item_type == CUDSItem.POINT:
+        if item_type == CUBA.POINT:
             return self.pool.mesh_size(self.name)[0]
-        elif item_type == CUDSItem.EDGE:
+        elif item_type == CUBA.EDGE:
             return self.pool.mesh_size(self.name)[1]
-        elif item_type == CUDSItem.FACE:
+        elif item_type == CUBA.FACE:
             return self.pool.mesh_size(self.name)[2]
-        elif item_type == CUDSItem.CELL:
+        elif item_type == CUBA.CELL:
             return self.pool.mesh_size(self.name)[3]
         else:
             error_str = 'Item type {} not supported'
