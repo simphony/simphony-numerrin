@@ -525,7 +525,7 @@ class NumerrinMesh(ABCMesh):
         Parameters
         ----------
         item_type : CUBA item
-            The CUDSItem enum of the type of the items to return the count of.
+            The CUBA item enum of the type of the items to return the count of.
 
         Returns
         -------

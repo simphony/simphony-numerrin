@@ -10,7 +10,6 @@ import unittest
 from simphony.cuds.mesh import Mesh, Face, Point, Cell, Edge
 from simphony.core.cuba import CUBA
 from simphony.core.data_container import DataContainer
-from simphony.core.cuds_item import CUDSItem
 
 from numerrin_wrapper.numerrin_mesh import NumerrinMesh
 from numerrin_wrapper.numerrin_pool import NumerrinPool
@@ -201,7 +200,7 @@ class NumerrinMeshTestCase(unittest.TestCase):
 
         num_mesh = NumerrinMesh('test_mesh', self.mesh, self.pool)
         self.assertEqual(sum(1 for _ in num_mesh.iter(item_type=CUBA.EDGE)),
-                         num_mesh.count_of(CUDSItem.EDGE))
+                         num_mesh.count_of(CUBA.EDGE))
 
     def test_iter_faces(self):
         """Test iter_faces method
@@ -249,18 +248,18 @@ class NumerrinMeshTestCase(unittest.TestCase):
 
         num_mesh = NumerrinMesh('test_mesh', self.mesh, self.pool)
 
-        item_type = CUDSItem.POINT
+        item_type = CUBA.POINT
         self.assertEqual(num_mesh.count_of(item_type),
                          self.mesh.count_of(item_type))
 
-        item_type = CUDSItem.EDGE
+        item_type = CUBA.EDGE
         self.assertEqual(num_mesh.count_of(item_type), 12)
 
-        item_type = CUDSItem.FACE
+        item_type = CUBA.FACE
         self.assertEqual(num_mesh.count_of(item_type),
                          self.mesh.count_of(item_type))
 
-        item_type = CUDSItem.CELL
+        item_type = CUBA.CELL
         self.assertEqual(num_mesh.count_of(item_type),
                          self.mesh.count_of(item_type))
 
