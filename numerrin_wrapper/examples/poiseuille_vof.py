@@ -56,7 +56,7 @@ mesh_inside_wrapper = wrapper.get_dataset(name)
 # initial state. In VOF only one velocity and pressure field
 
 updated_points = []
-for point in mesh_inside_wrapper.iter_points():
+for point in mesh_inside_wrapper.iter(item_type=CUBA.POINT):
     x = point.coordinates[0]
     if x < 0.02/3.0:
         point.data[CUBA.VOLUME_FRACTION] = 1.0
@@ -68,7 +68,7 @@ for point in mesh_inside_wrapper.iter_points():
 
     updated_points.append(point)
 
-mesh_inside_wrapper.update_points(updated_points)
+mesh_inside_wrapper.update(updated_points)
 
 wrapper.run()
 print "Run up to time: ", mesh_inside_wrapper._time
