@@ -25,6 +25,8 @@ install:
   - python setup.py develop
 script:
   - flake8 .
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/numerrin-interface
+  - export PYTHONPATH=$PYTHONPATH:$PWD/numerrin-interface
   - python -m unittest discover
 after_success:
   - coveralls
