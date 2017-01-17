@@ -5,6 +5,10 @@ virtualenv:
   system_site_packages: false
 env:
   - SIMPHONY_VERSION=master
+  - SIMPHONY_VERSION=0.5.0
+matrix:
+    allow_failures:
+        - env: SIMPHONY_VERSION=master
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install libhdf5-serial-dev
