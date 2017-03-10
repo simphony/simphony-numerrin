@@ -12,7 +12,7 @@ matrix:
         # We would be able to test it if we had a mock numerrin wrapper, but
         # this is not available, so we just accept it and mark it all good.
         - env: SIMPHONY_VERSION=master
-        - env: SIMPHONY_VERSION=0.6.0
+        - env: SIMPHONY_VERSION=0.6.1
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install libhdf5-serial-dev
