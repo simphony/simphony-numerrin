@@ -63,7 +63,7 @@ nex = 33
 ney = 3
 nez = 1
 mesh = numerrin.create_quad_mesh(name, corner_points,
-                          extrude_length, nex, ney, nez)
+                                 extrude_length, nex, ney, nez)
 wrapper.add_dataset(mesh)
 
 mesh_inside_wrapper = wrapper.get_dataset(name)
