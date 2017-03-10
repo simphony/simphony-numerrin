@@ -1,5 +1,10 @@
 Simphony-Numerrin CHANGELOG
-======================
+===========================
+
+Release 0.1.4
+-------------
+
+* Use latest version of of simphony-common (>=0.6.0) (#15)
 
 Release 0.1.1
 -------------
