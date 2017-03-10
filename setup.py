@@ -31,7 +31,7 @@ setup(
     description='Implementation of the SimPhoNy Numerrin -wrapper',
     long_description=README_TEXT,
     packages=find_packages(),
-    install_requires=['simphony>0.4,<0.6'],
+    install_requires=['simphony>=0.6'],
     entry_points={
         'simphony.engine': ['numerrin = numerrin_wrapper']}
 )
