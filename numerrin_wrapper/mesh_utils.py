@@ -52,9 +52,6 @@ omega->domains[0]
        p_name+boundary_names[3])
     code = NumerrinCode(numerrin_wrapper.pool.ph)
     code.parse_string(mesh_code)
-    f = open('mesh.num', 'w')
-    f.write(mesh_code)
-    f.close()
     code.execute(1)
     (smesh, mmap, boundaries) =\
         numerrin_wrapper.pool.export_mesh(name, p_name,

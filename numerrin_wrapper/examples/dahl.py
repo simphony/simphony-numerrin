@@ -58,20 +58,20 @@ wrapper.BC[CUBA.VOLUME_FRACTION] = {'inlet': ('fixedValue', 0.001),
                                     'frontAndBack': 'empty'}
 
 # create mesh
-openfoam_file_io.create_block_mesh(tempfile.mkdtemp(), name, wrapper,
-                                   dahl_mesh.blockMeshDict)
+mesh = openfoam_file_io.create_block_mesh(tempfile.mkdtemp(), name,
+                                          dahl_mesh.blockMeshDict)
+wrapper.add_dataset(mesh)
 
 mesh_inside_wrapper = wrapper.get_dataset(name)
 
-
 updated_points = []
-for point in mesh_inside_wrapper.iter_points():
+for point in mesh_inside_wrapper.iter(item_type=CUBA.POINT):
     point.data[CUBA.VOLUME_FRACTION] = 0.001
     point.data[CUBA.PRESSURE] = 0.0
     point.data[CUBA.VELOCITY] = [0.0191, 0.0, 0.0]
     updated_points.append(point)
 
-mesh_inside_wrapper.update_points(updated_points)
+mesh_inside_wrapper.update(updated_points)
 
 wrapper.run()
 print "Run up to time: ", mesh_inside_wrapper._time

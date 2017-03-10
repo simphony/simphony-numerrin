@@ -23,7 +23,7 @@ numname = {CUBA.RADIUS: "Radius",
            CUBA.DYNAMIC_VISCOSITY: "Viscosity",
            CUBA.DIFFUSION_COEFFICIENT: "DiffusionCoefficient",
            CUBA.FRICTION_COEFFICIENT: "FrictionCoefficient",
-           CUBA.CONTANCT_ANGLE: "ContactAngle",
+           CUBA.CONTACT_ANGLE: "ContactAngle",
            CUBA.TIME_STEP: "TimeStep",
            CUBA.FORCE: "Force",
            CUBA.TORQUE: "Torque",
@@ -568,7 +568,7 @@ A=Derivative(r,q)
       uu:=upwindv(u,rhom,muEff,nor,vf)
       vr={relative_velocity}
       coef=betap*betac/rhom
-      % normaalijännitys myös mukaan !!!!!!!
+      %
       SigmaPrime:={sigma}-tau
       tauDm0:=coef*vr[0]*vr+rhom*uu[0]*u(.)-tau[:,0]-SigmaPrime[:,0]
       tauDm1:=coef*vr[1]*vr+rhom*uu[1]*u(.)-tau[:,1]-SigmaPrime[:,1]
