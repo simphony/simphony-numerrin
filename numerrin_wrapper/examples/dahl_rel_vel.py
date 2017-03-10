@@ -62,12 +62,12 @@ extrude_length = 0.1
 nex = 33
 ney = 3
 nez = 1
-numerrin.create_quad_mesh(name, wrapper, corner_points,
+mesh = numerrin.create_quad_mesh(name, corner_points,
                           extrude_length, nex, ney, nez)
+wrapper.add_dataset(mesh)
 
 mesh_inside_wrapper = wrapper.get_dataset(name)
 
-print mesh_inside_wrapper.path
 
 updated_points = []
 for point in mesh_inside_wrapper.iter(item_type=CUBA.POINT):

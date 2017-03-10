@@ -479,6 +479,20 @@ class NumerrinMesh(ABCMesh):
                 cell = self._get_cell(uid)
                 yield cell
 
+    def _has_points(self):
+        """Check if the mesh has points
+
+        Returns
+        -------
+        bool
+            True of there are points inside the mesh,
+            False otherwise
+
+        """
+
+        numberPoints = self.pool.mesh_size(self.name)[0]
+        return numberPoints > 0
+
     def _has_edges(self):
         """Check if the mesh has edges
 

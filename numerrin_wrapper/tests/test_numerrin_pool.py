@@ -192,6 +192,7 @@ class NumerrinPoolTestCase(unittest.TestCase):
         pool.import_mesh(self.mesh.name, self.mesh, self.boundaries)
         boundary_names = self.boundaries.keys()
         (smesh, mmap, boundaries) = pool.export_mesh(self.mesh.name,
+                                                     self.mesh.name,
                                                      boundary_names)
         self.assertEqual(sum(1 for _ in smesh.iter(item_type=CUBA.POINT)),
                          sum(1 for _ in self.mesh.iter(item_type=CUBA.POINT)))

@@ -187,6 +187,7 @@ class NumerrinCode(object):
             Boundary Conditions
         CMExt : dictionary
             extension to CM
+        mesh : Numerrin mesh
 
         Return
         ------
@@ -245,7 +246,6 @@ class NumerrinCode(object):
                 if pressureBCs[boundary] not in non_fixed_boundary_types:
                     # integrate momentum on outflow boundaries
                     # (where pressure is fixed)
-                    bccode += "? \"Mom fluxes\"\n"
                     bccode += "Integral(" + boundary + ",\"VlFlx2\",1)\n"
                     bccode += "nor:=NormalVector\n"
                     bccode += "vf:=VolumeFunction\n"
@@ -285,7 +285,6 @@ class NumerrinCode(object):
 
         # integrate flux over boundaries
         if solver == "VOFLaminar":
-            bccode += "? \"Boundary fluxes\"\n"
             for boundary in boundaries:
                 bccode += "Integral(" + boundary + ",\"VlFlx1\",3)\n"
                 bccode += "nor:=NormalVector\n"
@@ -386,13 +385,11 @@ class NumerrinCode(object):
         code += "If inIt == 1\n"
         code += "  eps=reduc*normi\n"
         code += "EndIf\n"
-        code += "? inIt, \":\", normi\n"
+        code += "? \"  Iteration: \",inIt, \": \", normi\n"
         code += "If ((normi < 1.0e-8 || ~(normi > eps)) && inIt >= 2)\n"
         code += " Exit\n"
         code += "EndIf\n"
-        code += "? \"Start linear system solving\"\n"
         code += "q -= relax*LU(A,r)\n"
-        code += "? \"End linear system solving\"\n"
         code += "if normi < normi0\n"
         code += " relax = 1.0\n"
         code += "endif\n"

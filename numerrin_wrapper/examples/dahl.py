@@ -58,11 +58,11 @@ wrapper.BC[CUBA.VOLUME_FRACTION] = {'inlet': ('fixedValue', 0.001),
                                     'frontAndBack': 'empty'}
 
 # create mesh
-openfoam_file_io.create_block_mesh(tempfile.mkdtemp(), name, wrapper,
+mesh = openfoam_file_io.create_block_mesh(tempfile.mkdtemp(), name,
                                    dahl_mesh.blockMeshDict)
+wrapper.add_dataset(mesh)
 
 mesh_inside_wrapper = wrapper.get_dataset(name)
-
 
 updated_points = []
 for point in mesh_inside_wrapper.iter(item_type=CUBA.POINT):

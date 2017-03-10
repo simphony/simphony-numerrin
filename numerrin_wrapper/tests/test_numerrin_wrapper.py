@@ -92,18 +92,15 @@ class WrapperTestCase(unittest.TestCase):
         self.assertEqual(self.mesh.name, mesh_inside_wrapper.name)
 
         for point in self.mesh.iter(item_type=CUBA.POINT):
-            point_w = mesh_inside_wrapper.get(point.uid)
-            self.assertEqual(point.uid, point_w.uid)
+            point_w = mesh_inside_wrapper._get_point(point.uid)
             self.assertEqual(point.coordinates, point_w.coordinates)
 
         for face in self.mesh.iter(item_type=CUBA.FACE):
-            face_w = mesh_inside_wrapper.get(face.uid)
-            self.assertEqual(face.uid, face_w.uid)
+            face_w = mesh_inside_wrapper._get_face(face.uid)
             self.assertEqual(face.points, face_w.points)
 
         for cell in self.mesh.iter(item_type=CUBA.CELL):
-            cell_w = mesh_inside_wrapper.get(cell.uid)
-            self.assertEqual(cell.uid, cell_w.uid)
+            cell_w = mesh_inside_wrapper._get_cell(cell.uid)
             self.assertEqual(set(cell.points), set(cell_w.points))
 
     def test_iter_datasets(self):

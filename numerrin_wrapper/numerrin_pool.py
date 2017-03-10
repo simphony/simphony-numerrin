@@ -27,6 +27,9 @@ class NumerrinPool(object):
 
         Parameters
         ----------
+        s_name : str
+            Simphony mesh name
+
         name : str
             name of mesh
 
@@ -149,7 +152,7 @@ class NumerrinPool(object):
             numerrin.setnode(self.ph, name, indx, point.coordinates)
             mmap[point.uid] = indx
             pmap[indx] = point.uid
-            indx = indx+1
+            indx += 1
 
         indx = 0
         emap = {}
@@ -162,14 +165,14 @@ class NumerrinPool(object):
             numerrin.setelement(self.ph, name, 1, indx, 0, tuple(pind))
             mmap[edge.uid] = indx
             emap[indx] = edge.uid
-            indx = indx+1
+            indx += 1
 
         indx = 0
         fmap = {}
         for face in simphonyMesh.iter(item_type=CUBA.FACE):
             pind = []
-            for point in face.points:
-                pind.append(mmap[point])
+            for puid in face.points:
+                pind.append(mmap[puid])
             face_renode(pind)
             if len(pind) == 3:
                 numerrin.setelementtype(self.ph, name, 2, indx, 2)
@@ -178,7 +181,7 @@ class NumerrinPool(object):
             numerrin.setelement(self.ph, name, 2, indx, 0, tuple(pind))
             mmap[face.uid] = indx
             fmap[indx] = face.uid
-            indx = indx+1
+            indx += 1
 
         boundary_faces = {}
         for boundary in boundaries:
@@ -204,7 +207,7 @@ class NumerrinPool(object):
             mmap[cell.uid] = indx
             cmap[indx] = cell.uid
             cell_ids.append(indx)
-            indx = indx+1
+            indx += 1
 
         # create edges and faces if not exists
         if not simphonyMesh.has_type(CUBA.EDGE):
@@ -384,10 +387,7 @@ class NumerrinPool(object):
         function_size : int or tuple
             size of the function space
         """
-#        print type(self.ph)
-#        print type(name)
-#        print type(space_name)
-#        print type(function_size)
+
         numerrin.createrealfunction(self.ph, name, space_name, function_size)
 
     def modify_variable(self, name, var):
