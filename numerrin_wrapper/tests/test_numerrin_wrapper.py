@@ -40,7 +40,7 @@ class WrapperTestCase(unittest.TestCase):
                 (0.0, 1.0, 1.0))
         ]
 
-        puids = self.mesh.add_points(self.points)
+        puids = self.mesh.add(self.points)
 
         self.faces = [
             Face([puids[0], puids[3], puids[7], puids[4]]),
@@ -51,7 +51,7 @@ class WrapperTestCase(unittest.TestCase):
             Face([puids[4], puids[5], puids[6], puids[7]])
         ]
 
-        self.mesh.add_faces(self.faces)
+        self.mesh.add(self.faces)
 
         self.cells = [
             Cell(puids)
@@ -59,7 +59,7 @@ class WrapperTestCase(unittest.TestCase):
 
         self.puids = puids
 
-        self.mesh.add_cells(self.cells)
+        self.mesh.add(self.cells)
 
     def test_add_dataset(self):
         """Test add_dataset method
@@ -91,19 +91,16 @@ class WrapperTestCase(unittest.TestCase):
         mesh_inside_wrapper = wrapper.get_dataset(self.mesh.name)
         self.assertEqual(self.mesh.name, mesh_inside_wrapper.name)
 
-        for point in self.mesh.iter_points():
-            point_w = mesh_inside_wrapper.get_point(point.uid)
-            self.assertEqual(point.uid, point_w.uid)
+        for point in self.mesh.iter(item_type=CUBA.POINT):
+            point_w = mesh_inside_wrapper._get_point(point.uid)
             self.assertEqual(point.coordinates, point_w.coordinates)
 
-        for face in self.mesh.iter_faces():
-            face_w = mesh_inside_wrapper.get_face(face.uid)
-            self.assertEqual(face.uid, face_w.uid)
+        for face in self.mesh.iter(item_type=CUBA.FACE):
+            face_w = mesh_inside_wrapper._get_face(face.uid)
             self.assertEqual(face.points, face_w.points)
 
-        for cell in self.mesh.iter_cells():
-            cell_w = mesh_inside_wrapper.get_cell(cell.uid)
-            self.assertEqual(cell.uid, cell_w.uid)
+        for cell in self.mesh.iter(item_type=CUBA.CELL):
+            cell_w = mesh_inside_wrapper._get_cell(cell.uid)
             self.assertEqual(set(cell.points), set(cell_w.points))
 
     def test_iter_datasets(self):
@@ -133,8 +130,8 @@ class WrapperTestCase(unittest.TestCase):
         mesh_inside_wrapper2 = wrapper.get_dataset(mesh2.name)
 
         self.assertEqual(
-            sum(1 for _ in mesh_inside_wrapper1.iter_points()),
-            sum(1 for _ in mesh_inside_wrapper2.iter_points()))
+            sum(1 for _ in mesh_inside_wrapper1.iter(item_type=CUBA.POINT)),
+            sum(1 for _ in mesh_inside_wrapper2.iter(item_type=CUBA.POINT)))
 
     def test_run_time(self):
         """Test that field variable value is changed after
@@ -175,7 +172,7 @@ class WrapperTestCase(unittest.TestCase):
         # sum data pointwise
         old_vel = 0.0
         old_pres = 0.0
-        for point in mesh_inside_wrapper.iter_points():
+        for point in mesh_inside_wrapper.iter(item_type=CUBA.POINT):
             velo = point.data[CUBA.VELOCITY]
             old_vel += math.sqrt(velo[0]*velo[0] + velo[1]*velo[1] +
                                  velo[2]*velo[2])
@@ -188,7 +185,7 @@ class WrapperTestCase(unittest.TestCase):
         # sum data pointwise
         new_vel = 0.0
         new_pres = 0.0
-        for point in mesh_inside_wrapper.iter_points():
+        for point in mesh_inside_wrapper.iter(item_type=CUBA.POINT):
             velo = point.data[CUBA.VELOCITY]
             new_vel += math.sqrt(velo[0]*velo[0] + velo[1]*velo[1] +
                                  velo[2]*velo[2])

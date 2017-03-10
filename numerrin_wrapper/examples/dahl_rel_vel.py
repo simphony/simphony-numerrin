@@ -62,21 +62,21 @@ extrude_length = 0.1
 nex = 33
 ney = 3
 nez = 1
-numerrin.create_quad_mesh(name, wrapper, corner_points,
-                          extrude_length, nex, ney, nez)
+mesh = numerrin.create_quad_mesh(name, corner_points,
+                                 extrude_length, nex, ney, nez)
+wrapper.add_dataset(mesh)
 
 mesh_inside_wrapper = wrapper.get_dataset(name)
 
-print mesh_inside_wrapper.path
 
 updated_points = []
-for point in mesh_inside_wrapper.iter_points():
+for point in mesh_inside_wrapper.iter(item_type=CUBA.POINT):
     point.data[CUBA.VOLUME_FRACTION] = 0.001
     point.data[CUBA.PRESSURE] = 0.0
     point.data[CUBA.VELOCITY] = [0.0191, 0.0, 0.0]
     updated_points.append(point)
 
-mesh_inside_wrapper.update_points(updated_points)
+mesh_inside_wrapper.update(updated_points)
 
 wrapper.run()
 
@@ -86,13 +86,13 @@ V0 = [0.0, -0.002, 0.0]
 a = 285.0
 
 updated_points = []
-for point in mesh_inside_wrapper.iter_points():
+for point in mesh_inside_wrapper.iter(item_type=CUBA.POINT):
     alphad = point.data[CUBA.VOLUME_FRACTION]
     vdj = [V*pow(10.0, -a*max(alphad, 0.0)) for V in V0]
     point.data[CUBA.ANGULAR_VELOCITY] = vdj
     updated_points.append(point)
 
-mesh_inside_wrapper.update_points(updated_points)
+mesh_inside_wrapper.update(updated_points)
 
 print "Solve with updated relative velocity"
 wrapper.run()

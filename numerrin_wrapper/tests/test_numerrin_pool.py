@@ -57,7 +57,7 @@ class NumerrinPoolTestCase(unittest.TestCase):
                                     CUBA.PRESSURE: 4.0}))
         ]
 
-        puids = self.mesh.add_points(self.points)
+        puids = self.mesh.add(self.points)
 
         self.faces = [
             Face([puids[0], puids[3], puids[7], puids[4]],
@@ -77,7 +77,7 @@ class NumerrinPoolTestCase(unittest.TestCase):
 
         self.edge = Edge([puids[0], puids[3]])
 
-        self.mesh.add_faces(self.faces)
+        self.mesh.add(self.faces)
 
         self.cells = [
             Cell(puids)
@@ -85,7 +85,7 @@ class NumerrinPoolTestCase(unittest.TestCase):
 
         self.puids = puids
 
-        self.mesh.add_cells(self.cells)
+        self.mesh.add(self.cells)
 
         self.variablename = self.mesh.name + "Velocity"
         self.variable = tuple([(0.0, 0.0, 0.0) for _ in self.points])
@@ -192,15 +192,18 @@ class NumerrinPoolTestCase(unittest.TestCase):
         pool.import_mesh(self.mesh.name, self.mesh, self.boundaries)
         boundary_names = self.boundaries.keys()
         (smesh, mmap, boundaries) = pool.export_mesh(self.mesh.name,
+                                                     self.mesh.name,
                                                      boundary_names)
-        self.assertEqual(sum(1 for _ in smesh.iter_points()),
-                         sum(1 for _ in self.mesh.iter_points()))
-        self.assertEqual(sum(1 for _ in smesh.iter_faces()),
-                         sum(1 for _ in self.mesh.iter_faces()))
-        self.assertEqual(sum(1 for _ in smesh.iter_cells()),
-                         sum(1 for _ in self.mesh.iter_cells()))
-        self.assertEqual(set([p.coordinates for p in smesh.iter_points()]),
-                         set([p.coordinates for p in self.mesh.iter_points()]))
+        self.assertEqual(sum(1 for _ in smesh.iter(item_type=CUBA.POINT)),
+                         sum(1 for _ in self.mesh.iter(item_type=CUBA.POINT)))
+        self.assertEqual(sum(1 for _ in smesh.iter(item_type=CUBA.FACE)),
+                         sum(1 for _ in self.mesh.iter(item_type=CUBA.FACE)))
+        self.assertEqual(sum(1 for _ in smesh.iter(item_type=CUBA.CELL)),
+                         sum(1 for _ in self.mesh.iter(item_type=CUBA.CELL)))
+        self.assertEqual(set([p.coordinates
+                              for p in smesh.iter(item_type=CUBA.POINT)]),
+                         set([p.coordinates
+                              for p in self.mesh.iter(item_type=CUBA.POINT)]))
         self.assertEqual(boundaries.keys(), boundary_names)
 
 

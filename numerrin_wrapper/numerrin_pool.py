@@ -4,7 +4,7 @@ Module for operations on Numerrin pool
 
 """
 from simphony.cuds.mesh import Mesh, Point, Edge, Face, Cell
-from simphony.core.cuds_item import CUDSItem
+from simphony.core.cuba import CUBA
 
 from .numerrin_utils import (face_renode, cell_renode, generate_uuid)
 from .numerrin_templates import (numvariables, numname)
@@ -27,6 +27,9 @@ class NumerrinPool(object):
 
         Parameters
         ----------
+        s_name : str
+            Simphony mesh name
+
         name : str
             name of mesh
 
@@ -53,7 +56,7 @@ class NumerrinPool(object):
             uuids.append(spoint.uid)
             mmap[spoint.uid] = i
 
-        simphonyMesh.add_points(spoints)
+        simphonyMesh.add(spoints)
 
         if len(meshsize) > 1:
             edges = []
@@ -65,7 +68,7 @@ class NumerrinPool(object):
                 ed = Edge(points, uid=generate_uuid())
                 edges.append(ed)
                 mmap[ed.uid] = i
-            simphonyMesh.add_edges(edges)
+            simphonyMesh.add(edges)
 
         if len(meshsize) > 2:
             labeluidmap = {}
@@ -80,7 +83,7 @@ class NumerrinPool(object):
                 faces.append(fa)
                 mmap[fa.uid] = i
                 labeluidmap[i] = fa.uid
-            simphonyMesh.add_faces(faces)
+            simphonyMesh.add(faces)
 
             boundaries = {}
             for boundary in boundary_names:
@@ -102,7 +105,7 @@ class NumerrinPool(object):
                 ce = Cell(points, uid=generate_uuid())
                 cells.append(ce)
                 mmap[ce.uid] = i
-            simphonyMesh.add_cells(cells)
+            simphonyMesh.add(cells)
 
         return (simphonyMesh, mmap, boundaries)
 
@@ -134,10 +137,10 @@ class NumerrinPool(object):
 
         """
 
-        nPoints = simphonyMesh.count_of(CUDSItem.POINT)
-        nEdges = simphonyMesh.count_of(CUDSItem.EDGE)
-        nFaces = simphonyMesh.count_of(CUDSItem.FACE)
-        nCells = simphonyMesh.count_of(CUDSItem.CELL)
+        nPoints = simphonyMesh.count_of(CUBA.POINT)
+        nEdges = simphonyMesh.count_of(CUBA.EDGE)
+        nFaces = simphonyMesh.count_of(CUBA.FACE)
+        nCells = simphonyMesh.count_of(CUBA.CELL)
 
         sizes = (nPoints, nEdges, nFaces, nCells)
         numerrin.initmesh(self.ph, name, 3, sizes)
@@ -145,16 +148,16 @@ class NumerrinPool(object):
         mmap = {}
         pmap = {}
         indx = 0
-        for point in simphonyMesh.iter_points():
+        for point in simphonyMesh.iter(item_type=CUBA.POINT):
             numerrin.setnode(self.ph, name, indx, point.coordinates)
             mmap[point.uid] = indx
             pmap[indx] = point.uid
-            indx = indx+1
+            indx += 1
 
         indx = 0
         emap = {}
 
-        for edge in simphonyMesh.iter_edges():
+        for edge in simphonyMesh.iter(item_type=CUBA.EDGE):
             pind = []
             for point in edge.points:
                 pind.append(mmap[point])
@@ -162,14 +165,14 @@ class NumerrinPool(object):
             numerrin.setelement(self.ph, name, 1, indx, 0, tuple(pind))
             mmap[edge.uid] = indx
             emap[indx] = edge.uid
-            indx = indx+1
+            indx += 1
 
         indx = 0
         fmap = {}
-        for face in simphonyMesh.iter_faces():
+        for face in simphonyMesh.iter(item_type=CUBA.FACE):
             pind = []
-            for point in face.points:
-                pind.append(mmap[point])
+            for puid in face.points:
+                pind.append(mmap[puid])
             face_renode(pind)
             if len(pind) == 3:
                 numerrin.setelementtype(self.ph, name, 2, indx, 2)
@@ -178,7 +181,7 @@ class NumerrinPool(object):
             numerrin.setelement(self.ph, name, 2, indx, 0, tuple(pind))
             mmap[face.uid] = indx
             fmap[indx] = face.uid
-            indx = indx+1
+            indx += 1
 
         boundary_faces = {}
         for boundary in boundaries:
@@ -189,7 +192,7 @@ class NumerrinPool(object):
         indx = 0
         cmap = {}
         cell_ids = []
-        for cell in simphonyMesh.iter_cells():
+        for cell in simphonyMesh.iter(item_type=CUBA.CELL):
             pind = []
             for point in cell.points:
                 pind.append(mmap[point])
@@ -204,10 +207,10 @@ class NumerrinPool(object):
             mmap[cell.uid] = indx
             cmap[indx] = cell.uid
             cell_ids.append(indx)
-            indx = indx+1
+            indx += 1
 
         # create edges and faces if not exists
-        if not simphonyMesh.has_edges():
+        if not simphonyMesh.has_type(CUBA.EDGE):
             numerrin.createedges(self.ph, name)
             # create mapping
             for i in range(self.mesh_size(name)[1]):
@@ -215,7 +218,7 @@ class NumerrinPool(object):
                 edge = Edge(points, uid=generate_uuid())
                 emap[i] = edge.uid
                 mmap[edge.uid] = i
-        if not simphonyMesh.has_faces():
+        if not simphonyMesh.has_type(CUBA.FACE):
             numerrin.createfaces(self.ph, name)
             # create mapping
             for i in range(self.mesh_size(name)[2]):
@@ -384,10 +387,7 @@ class NumerrinPool(object):
         function_size : int or tuple
             size of the function space
         """
-#        print type(self.ph)
-#        print type(name)
-#        print type(space_name)
-#        print type(function_size)
+
         numerrin.createrealfunction(self.ph, name, space_name, function_size)
 
     def modify_variable(self, name, var):

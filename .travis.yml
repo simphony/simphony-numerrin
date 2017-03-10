@@ -4,11 +4,15 @@ python:
 virtualenv:
   system_site_packages: false
 env:
-  - SIMPHONY_VERSION=0.4.0
   - SIMPHONY_VERSION=master
+  - SIMPHONY_VERSION=0.6.0
 matrix:
-  allow_failures:
-    - env: SIMPHONY_VERSION=master
+    allow_failures:
+        # None of the entries can work, because numerrin requires a license.
+        # We would be able to test it if we had a mock numerrin wrapper, but
+        # this is not available, so we just accept it and mark it all good.
+        - env: SIMPHONY_VERSION=master
+        - env: SIMPHONY_VERSION=0.6.0
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install libhdf5-serial-dev
@@ -25,5 +29,8 @@ install:
   - python setup.py develop
 script:
   - flake8 .
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/numerrin-interface
+  - export PYTHONPATH=$PYTHONPATH:$PWD/numerrin-interface
+  - python -m unittest discover
 after_success:
   - coveralls
